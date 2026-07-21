@@ -93,16 +93,10 @@ cd C:/Users/Administrator/Downloads/GitCode/alpha-jerry
 
 ### Step 0.2 依赖管理与工具配置
 
-- [ ] 已完成此步（断点提交后打勾）
+- [x] 已完成此步（断点提交后打勾）
 
 - **做什么**：用 `uv` 初始化 Python 项目，配置 `pyproject.toml`，加入 ruff（格式/检查）与 pytest（测试）。
 - **涉及文件**：`pyproject.toml`、`uv.lock`、`.env.example`
-- **关键命令**：
-  ```bash
-  uv init --python ">=3.12"
-  uv add pandas openpyxl pydantic-settings python-dotenv
-  uv add --dev ruff pytest pytest-cov
-  ```
 - **学习点**：`pyproject.toml` 是现代 Python 项目的"配置中心"，依赖、工具配置都写在这里；`uv.lock` 锁定精确版本，保证别人拉代码后依赖一致。
 - **验证**：`uv run python -c "import pandas; print(pandas.__version__)"` 能输出版本号。
 - **断点提交**：
