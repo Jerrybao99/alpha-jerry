@@ -23,51 +23,38 @@ date: 2026-07-21
 |---|---|
 | **步骤（Step）** | 路线图最小学习单元，一次只做一件小事 |
 | **断点提交** | 每完成一个 Step 就 `git commit` 一次，形成可回滚的存档点 |
-| **PR（Pull Request）** | M0 直接推 main（热身）；M1 起每里程碑开分支走 PR（见 §0.6） |
+| **推送 main** | 全程不开 PR，每个断点提交后直接 `git push origin main`（见 §0.6） |
 | **里程碑（Milestone）** | M0~M7，每个里程碑结束有明确验收命令 |
 
 ### 0.2 三条铁律（来自 dev-guide §12）
 
 1. **提交前必跑验证**：`uv run ruff check .` + `uv run pytest -m "not network"`。
-2. **单 PR ≤ 20 文件**，且只做一件事；超出须在 PR 描述说明原因。
+2. **单次提交 ≤ 20 文件**，且只做一件事；超出须在提交说明中注明原因。
 3. **不含构建产物**：`__pycache__/`、`*.pyc`、`node_modules/`、`build/`、`dist/`、`.env` 一律不入库。
 
 ### 0.3 需求追溯（对应 dev-guide §9）
 
 每个里程碑都会标注「**需求覆盖**」，列出它实现的 `BR-*`（业务需求）与 `FR-*`（功能需求）编号，编号定义见 [dev-guide.md §9](./dev-guide.md#9-功能需求清单可追溯)。这样每一步都能回答"我在交付哪条需求"，便于验收与回溯。
 
-### 0.4 分支与 PR 工作流
+### 0.6 推送流程（直接推 main）
 
-- **M0（工程骨架）**：直接提交并推送 `main`，作为热身与基线，**不开 PR**。
-- **M1 起**：每个里程碑严格走分支 PR 流程，`main` 始终保持可用基线。
-
-每个里程碑的标准流程：
+本项目**不开分支、不开 PR**，全程在 main 上以断点提交方式推进：
 
 ```bash
-# 1. 从最新 main 开特性分支
-git checkout main && git pull
-git checkout -b feat/mX-xxx        # 分支名见各里程碑验收行
-
-# 2. 在分支上做各 Step，断点提交（git add / git commit）
-# 3. 提交前必跑验证
+# 1. 提交前必跑验证
 uv run ruff check . && uv run pytest -m "not network"
 
-# 4. 推送分支
-git push -u origin feat/mX-xxx
+# 2. 断点提交（commit message 按 dev-guide §12.2 写目的/摘要/验证等）
+git add <本次改动文件>
+git commit -m "feat(xxx): 简述本次改动"
 
-# 5. 在 GitHub 上 Open PR：feat/mX-xxx → main
-#    标题：PR #N <里程碑名>；描述按 dev-guide §12.2 写（目的/摘要/验证/风险/回滚）
-
-# 6. 自测通过后 Merge PR（合并到 main）
-
-# 7. 合并后回 main 同步，删除本地分支
-git checkout main && git pull
-git branch -d feat/mX-xxx
+# 3. 立即推送 main
+git push origin main
 ```
 
-- **分支命名**：`feat/m<里程碑号>-<简述>`，如 `feat/m1-data`、`feat/m2-scoring-rating`。
-- **一个 PR = 一个里程碑**：PR 描述对照该里程碑的「需求覆盖」行逐条确认 BR/FR 已实现。
-- **PR 合并前**：确保 CI（ruff + pytest）通过、`单 PR ≤ 20 文件`、不含构建产物（§0.2）。
+- **为什么不开 PR**：单人开发项目，PR 流程过重；断点提交 + 立即推送已能满足「可回滚、可追溯」的诉求。
+- **回滚**：用 `git revert <commit>` 撤销某次提交，或 `git reset --hard <上一个干净提交>` 退回断点。
+- **main 永远可用**：每次推送前必须保证验证通过（§0.2 三条铁律），main 始终是可用基线。
 
 ---
 
@@ -98,11 +85,6 @@ git branch -d feat/mX-xxx
 - **涉及文件**：`pyproject.toml`、`uv.lock`、`.env.example`
 - **学习点**：`pyproject.toml` 是现代 Python 项目的"配置中心"，依赖、工具配置都写在这里；`uv.lock` 锁定精确版本，保证别人拉代码后依赖一致。
 - **验证**：`uv run python -c "import pandas; print(pandas.__version__)"` 能输出版本号。
-- **断点提交**：
-  ```bash
-  git add pyproject.toml uv.lock .env.example
-  git commit -m "chore: add pyproject and tooling config"
-  ```
 
 ### Step 0.3 目录骨架与配置入口
 
@@ -143,7 +125,7 @@ git branch -d feat/mX-xxx
   git commit -m "ci: add ruff and pytest gates"
   ```
 
-> 🎯 **M0 验收**：`uv run pytest` 通过；`git log` 有 4 个干净提交。**直接推送 main**（热身，不开 PR）。
+> 🎯 **M0 验收**：`uv run pytest` 通过；`git log` 有 4 个干净提交。**直接推送 main**（断点提交 + push）。
 
 ---
 
@@ -216,7 +198,7 @@ git branch -d feat/mX-xxx
   git commit -m "test(data): add 5-stock smoke test and xlsx output"
   ```
 
-> 🎯 **M1 验收**：5 股冒烟通过，xlsx 字段对齐 dev-guide §8.1。开分支 `feat/m1-data` → **PR #1**「数据采集」→ 合并。
+> 🎯 **M1 验收**：5 股冒烟通过，xlsx 字段对齐 dev-guide §8.1。每个断点提交后直接 `git push origin main`。
 
 ---
 
@@ -282,7 +264,7 @@ git branch -d feat/mX-xxx
   git commit -m "feat(rating): wire scoring and rating to xlsx output"
   ```
 
-> 🎯 **M2 验收**：`uv run pytest` 全绿；5 股样本产出 `-评分`/`-评级`/`-否决` xlsx。开分支 `feat/m2-scoring-rating` → **PR #2**「评分评级」→ 合并。
+> 🎯 **M2 验收**：`uv run pytest` 全绿；5 股样本产出 `-评分`/`-评级`/`-否决` xlsx。每个断点提交后直接 `git push origin main`。
 
 ---
 
@@ -333,7 +315,7 @@ git branch -d feat/mX-xxx
   git commit -m "docs: add data contract and prompt library"
   ```
 
-> 🎯 **M3 验收**：step1~step4 全流程一键跑通并产出 xlsx（dev-guide §12.3 DoD 第 1 条）。开分支 `feat/m3-report` → **PR #3**「报告输出」→ 合并。
+> 🎯 **M3 验收**：step1~step4 全流程一键跑通并产出 xlsx（dev-guide §12.3 DoD 第 1 条）。每个断点提交后直接 `git push origin main`。
 
 ---
 
@@ -399,7 +381,7 @@ git branch -d feat/mX-xxx
   git commit -m "feat(chat): add memory and streaming chat api"
   ```
 
-> 🎯 **M4 验收**：自然语言可触发采集/评分/报告。开分支 `feat/m4-agents` → **PR #4**「Agent 编排」→ 合并。
+> 🎯 **M4 验收**：自然语言可触发采集/评分/报告。每个断点提交后直接 `git push origin main`。
 
 ---
 
@@ -464,7 +446,7 @@ git branch -d feat/mX-xxx
   git commit -m "feat(notify): add email and wechat push"
   ```
 
-> 🎯 **M5 验收**：09:00/17:00 自动跑并推送（DoD 第 4 条）。开分支 `feat/m5-monitor-push` → **PR #5**「监控推送」→ 合并。
+> 🎯 **M5 验收**：09:00/17:00 自动跑并推送（DoD 第 4 条）。每个断点提交后直接 `git push origin main`。
 
 ---
 
@@ -528,7 +510,7 @@ git branch -d feat/mX-xxx
   git commit -m "build: add win mac packaging"
   ```
 
-> 🎯 **M6 验收**：双端可安装运行、可对话（DoD 第 5、6 条）。开分支 `feat/m6-desktop` → **PR #6**「桌面端」→ 合并。
+> 🎯 **M6 验收**：双端可安装运行、可对话（DoD 第 5、6 条）。每个断点提交后直接 `git push origin main`。
 
 ---
 
@@ -577,24 +559,24 @@ git branch -d feat/mX-xxx
   git commit -m "docs: finalize changelog readme and architecture"
   ```
 
-> 🎯 **M7 验收**：DoD 全部打勾。开分支 `feat/m7-monitor-feedback` → **PR #7**「监控反馈」→ 合并。
+> 🎯 **M7 验收**：DoD 全部打勾。每个断点提交后直接 `git push origin main`。
 
 ---
 
 ## 附：里程碑与提交总览
 
-| 里程碑 | Step 数 | 提交数 | 需求覆盖（dev-guide §9） | 验收命令 | 分支 / PR |
+| 里程碑 | Step 数 | 提交数 | 需求覆盖（dev-guide §9） | 验收命令 | 推送方式 |
 |---|---|---|---|---|---|
 | M0 工程骨架 | 4 | 4 | 工程基线（支撑全部 FR/NFR） | `uv run pytest` | 直接推 main |
-| M1 数据采集 | 4 | 4 | BR-01/02 · FR-DATA-01~10 · FR-UPDATE-02/03 | 5 股冒烟，xlsx 字段齐全 | `feat/m1-data` → PR #1 |
-| M2 评分评级 | 4 | 4 | BR-03/04/05 · FR-SCORE-01~09 · FR-RATE-01~04 | 阈值单测全覆盖；`-评分`/`-评级` xlsx | `feat/m2-scoring-rating` → PR #2 |
-| M3 报告输出 | 3 | 3 | BR-06/07 · FR-REPORT-01~07 | step1~4 一键跑通 | `feat/m3-report` → PR #3 |
-| M4 Agent 编排 | 4 | 4 | BR-12/14/17 · AR-* · FR-CHAT-01~05 | 对话触发各 Agent | `feat/m4-agents` → PR #4 |
-| M5 监控推送 | 4 | 4 | BR-08/09/10/11 · FR-HOTSPOT/PORT/PUSH · FR-UPDATE-01 | 09/17 定时 + 推送 | `feat/m5-monitor-push` → PR #5 |
-| M6 桌面端 | 4 | 4 | BR-13/15/16 · FR-UI-01~07 · NFR-01/02 | Win/Mac 可安装 | `feat/m6-desktop` → PR #6 |
-| M7 监控反馈 | 3 | 3 | BR-12（监控/反馈）· NFR-05 | DoD 全勾 | `feat/m7-monitor-feedback` → PR #7 |
+| M1 数据采集 | 4 | 4 | BR-01/02 · FR-DATA-01~10 · FR-UPDATE-02/03 | 5 股冒烟，xlsx 字段齐全 | 直接推 main |
+| M2 评分评级 | 4 | 4 | BR-03/04/05 · FR-SCORE-01~09 · FR-RATE-01~04 | 阈值单测全覆盖；`-评分`/`-评级` xlsx | 直接推 main |
+| M3 报告输出 | 3 | 3 | BR-06/07 · FR-REPORT-01~07 | step1~4 一键跑通 | 直接推 main |
+| M4 Agent 编排 | 4 | 4 | BR-12/14/17 · AR-* · FR-CHAT-01~05 | 对话触发各 Agent | 直接推 main |
+| M5 监控推送 | 4 | 4 | BR-08/09/10/11 · FR-HOTSPOT/PORT/PUSH · FR-UPDATE-01 | 09/17 定时 + 推送 | 直接推 main |
+| M6 桌面端 | 4 | 4 | BR-13/15/16 · FR-UI-01~07 · NFR-01/02 | Win/Mac 可安装 | 直接推 main |
+| M7 监控反馈 | 3 | 3 | BR-12（监控/反馈）· NFR-05 | DoD 全勾 | 直接推 main |
 
-**合计**：30 个断点提交、8 个里程碑（M0 直接推 main；M1~M7 各一个 PR，共 7 个 PR），覆盖 dev-guide §9 全部 BR/FR。
+**合计**：30 个断点提交、8 个里程碑，全部直接推 main（不开分支、不开 PR），覆盖 dev-guide §9 全部 BR/FR。
 
 ---
 
@@ -605,9 +587,9 @@ git branch -d feat/mX-xxx
 3. **看不懂就停下来查**：每个 Step 的"学习点"是刻意写的，遇到陌生概念先搞懂再往下。
 4. **用 `git log --oneline` 回顾**：定期看自己的提交历史，能直观看到成长轨迹。
 5. **卡住了就回到上一个断点**：`git status` 看改动，`git checkout .` 丢弃未提交改动重试。
-6. **PR 描述按 dev-guide §12.2 写**：目的/摘要/验证/未验证项/风险/回滚——这是职业习惯，越早养成越好。
+6. **提交说明按 dev-guide §12.2 写**：目的/摘要/验证/未验证项/风险/回滚——这是职业习惯，越早养成越好（不开 PR，所以写进 commit message）。
 7. **对照需求覆盖**：每完成一个里程碑，回看本里程碑的「需求覆盖」行，确认对应 BR/FR 都已实现。
-8. **M1 起走分支**：每开一个里程碑先 `git checkout -b feat/mX-xxx`，在分支上提交，再 PR 合并回 main（见 §0.6）；main 永远保持可用基线。
+8. **断点即推送**：每完成一个 Step，`git commit` 后立即 `git push origin main`；main 永远保持可用基线，出问题用 `git revert` 回滚。
 
 ---
 
