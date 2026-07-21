@@ -1,0 +1,38 @@
+[project]
+name = "alpha-jerry"
+version = "0.1.0"
+description = "A 股基本面分析 AI Native 工具集（多 Agent 编排 + RAG + 本地优先）"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "openpyxl>=3.1.5",
+    "pandas>=3.0.3",
+    "pydantic-settings>=2.14.2",
+    "python-dotenv>=1.2.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.22",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F/W 基础 + I 导入排序 + UP 现代语法
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]  # 行长由格式化器管，不强制
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "integrated_tests"]
+markers = [
+    "network: 需要真实网络访问的测试（CI 用 -m 'not network' 跳过）",
+]
+addopts = "-ra"
