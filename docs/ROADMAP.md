@@ -32,45 +32,11 @@ date: 2026-07-21
 2. **单 PR ≤ 20 文件**，且只做一件事；超出须在 PR 描述说明原因。
 3. **不含构建产物**：`__pycache__/`、`*.pyc`、`node_modules/`、`build/`、`dist/`、`.env` 一律不入库。
 
-### 0.3 提交信息规范（Conventional Commits）
-
-新人请养成习惯，提交信息用以下前缀（英文，便于检索）：
-
-| 前缀 | 用途 | 示例 |
-|---|---|---|
-| `feat` | 新功能 | `feat(scoring): add three-dimension scoring` |
-| `fix` | 修 bug | `fix(data): handle tushare rate limit` |
-| `docs` | 文档 | `docs: add data contract` |
-| `test` | 测试 | `test(rating): cover boundary 8.5` |
-| `refactor` | 重构（不改行为） | `refactor(scoring): extract veto logic` |
-| `chore` | 杂务/配置 | `chore: init project skeleton` |
-| `ci` | CI 配置 | `ci: add ruff and pytest gates` |
-| `build` | 打包构建 | `build: add win mac packaging` |
-
-> 格式：`<类型>(<范围>): <简述>`，正文（可选）写"为什么改"，不要写"改了什么"（diff 已说明）。
-
-### 0.4 首次配置（只做一次）
-
-```bash
-# 1. 配置 git 提交身份（github 提交名为 dev-log 待定项，先用本机配置）
-git config --global user.name  "你的名字"
-git config --global user.email "你的邮箱"
-
-# 2. 安装 uv（Python 包管理器，见 dev-guide §4）
-#    Windows (PowerShell):
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-#    macOS / Linux:
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 3. 进入项目目录
-cd C:/Users/Administrator/Downloads/GitCode/alpha-jerry
-```
-
-### 0.5 需求追溯（对应 dev-guide §9）
+### 0.3 需求追溯（对应 dev-guide §9）
 
 每个里程碑都会标注「**需求覆盖**」，列出它实现的 `BR-*`（业务需求）与 `FR-*`（功能需求）编号，编号定义见 [dev-guide.md §9](./dev-guide.md#9-功能需求清单可追溯)。这样每一步都能回答"我在交付哪条需求"，便于验收与回溯。
 
-### 0.6 分支与 PR 工作流
+### 0.4 分支与 PR 工作流
 
 - **M0（工程骨架）**：直接提交并推送 `main`，作为热身与基线，**不开 PR**。
 - **M1 起**：每个里程碑严格走分支 PR 流程，`main` 始终保持可用基线。
@@ -144,12 +110,6 @@ git branch -d feat/mX-xxx
 
 - **做什么**：按 dev-guide §5 创建源码目录结构；写 `AGENTS.md`（项目级 AI 行为规范）；写 `src/config.py` 的 `Settings` 类雏形与 `.env.example`；建 `main.py` 作为运行入口（dev-guide §10.3）。
 - **涉及文件**：`AGENTS.md`、`src/config.py`、`src/__init__.py`、各子目录 `__init__.py`、`main.py`、`.env.example`
-- **目录创建**：
-  ```bash
-  mkdir -p src/core src/scoring src/rating src/reports src/agents \
-           src/rag src/notifications src/scheduler src/schemas src/utils \
-           data_provider api apps/desktop scripts tests integrated_tests manifests
-  ```
 - **关于 `data/` 子目录**：`fin/analysis/hold/hot/monitor/feedback/rag` 这些数据子目录**不手动建、不入库**，由代码运行时 `os.makedirs(..., exist_ok=True)` 自动创建（`data/` 已在 `.gitignore`）。这样目录结构跟随数据生命周期，不污染版本库。
 - **学习点**：`Settings` 类集中管理所有配置（路径/超时/密钥），业务代码通过它读参数，禁止硬编码（dev-guide §6.3 架构原则 2）。`.env.example` 是配置样板，新增配置必须同步它（§12.1 配置同步门禁）。
 - **验证**：`uv run python -c "from src.config import Settings; print(Settings())"` 不报错。
