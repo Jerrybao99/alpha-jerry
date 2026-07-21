@@ -9,52 +9,11 @@ date: 2026-07-21
 
 # alpha-jerry 开发工程路线图（ROADMAP）
 
-> 本路线图把 [dev-guide.md](./dev-guide.md) 的 M0~M7 里程碑拆解为**对新人友好的小步骤**，每步配一个**断点提交（commit）**，方便你"做一步、存一步、学一步"。
->
-> **适用对象**：软件开发新人。每步都会说明"做什么 / 涉及哪些文件 / 关键命令 / 为什么这么做（学习点）/ 怎么验证 / 提交"。
-
 ---
-
-## 0. 如何使用本路线图
-
-### 0.1 提交节奏（断点学习法）
-
-| 概念 | 说明 |
-|---|---|
-| **步骤（Step）** | 路线图最小学习单元，一次只做一件小事 |
-| **断点提交** | 每完成一个 Step 就 `git commit` 一次，形成可回滚的存档点 |
-| **推送 main** | 全程不开 PR，每个断点提交后直接 `git push origin main`（见 §0.6） |
-| **里程碑（Milestone）** | M0~M7，每个里程碑结束有明确验收命令 |
-
-### 0.2 三条铁律（来自 dev-guide §12）
-
-1. **提交前必跑验证**：`uv run ruff check .` + `uv run pytest -m "not network"`。
-2. **单次提交 ≤ 20 文件**，且只做一件事；超出须在提交说明中注明原因。
-3. **不含构建产物**：`__pycache__/`、`*.pyc`、`node_modules/`、`build/`、`dist/`、`.env` 一律不入库。
 
 ### 0.3 需求追溯（对应 dev-guide §9）
 
 每个里程碑都会标注「**需求覆盖**」，列出它实现的 `BR-*`（业务需求）与 `FR-*`（功能需求）编号，编号定义见 [dev-guide.md §9](./dev-guide.md#9-功能需求清单可追溯)。这样每一步都能回答"我在交付哪条需求"，便于验收与回溯。
-
-### 0.6 推送流程（直接推 main）
-
-本项目**不开分支、不开 PR**，全程在 main 上以断点提交方式推进：
-
-```bash
-# 1. 提交前必跑验证
-uv run ruff check . && uv run pytest -m "not network"
-
-# 2. 断点提交（commit message 按 dev-guide §12.2 写目的/摘要/验证等）
-git add <本次改动文件>
-git commit -m "feat(xxx): 简述本次改动"
-
-# 3. 立即推送 main
-git push origin main
-```
-
-- **为什么不开 PR**：单人开发项目，PR 流程过重；断点提交 + 立即推送已能满足「可回滚、可追溯」的诉求。
-- **回滚**：用 `git revert <commit>` 撤销某次提交，或 `git reset --hard <上一个干净提交>` 退回断点。
-- **main 永远可用**：每次推送前必须保证验证通过（§0.2 三条铁律），main 始终是可用基线。
 
 ---
 
@@ -70,21 +29,12 @@ git push origin main
 
 - **做什么**：在项目根目录初始化 git，创建 `.gitignore`、`README.md`、`CHANGELOG.md`。
 
-- **验证**：`git status` 显示三个新文件。
-- **断点提交**：
-  ```bash
-  git add .gitignore README.md CHANGELOG.md
-  git commit -m "chore: init project skeleton"
-  ```
-
 ### Step 0.2 依赖管理与工具配置
 
 - [x] 已完成此步（断点提交后打勾）
 
 - **做什么**：用 `uv` 初始化 Python 项目，配置 `pyproject.toml`，加入 ruff（格式/检查）与 pytest（测试）。
 - **涉及文件**：`pyproject.toml`、`uv.lock`、`.env.example`
-- **学习点**：`pyproject.toml` 是现代 Python 项目的"配置中心"，依赖、工具配置都写在这里；`uv.lock` 锁定精确版本，保证别人拉代码后依赖一致。
-- **验证**：`uv run python -c "import pandas; print(pandas.__version__)"` 能输出版本号。
 
 ### Step 0.3 目录骨架与配置入口
 
@@ -97,7 +47,7 @@ git push origin main
 - **验证**：`uv run python -c "from src.config import Settings; print(Settings())"` 不报错。
 - **断点提交**：
   ```bash
-  git add AGENTS.md main.py src/ data_provider/ api/ apps/ scripts/ tests/ integrated_tests/ manifests/
+  git add AGENTS.md main.py src/ api/ apps/ scripts/ tests/ integrated_tests/ manifests/
   git commit -m "feat: scaffold project structure and settings"
   ```
 
@@ -139,13 +89,13 @@ git push origin main
 
 - [ ] 已完成此步（断点提交后打勾）
 
-- **做什么**：在 `data_provider/base.py` 定义 `BaseFetcher` 抽象接口；在 `src/schemas/` 用 Pydantic 定义特征工程字段模型（dev-guide §8.1）。
-- **涉及文件**：`data_provider/base.py`、`data_provider/__init__.py`、`src/schemas/financial.py`
+- **做什么**：在 `src/data_provider/base.py` 定义 `BaseFetcher` 抽象接口；在 `src/schemas/` 用 Pydantic 定义特征工程字段模型（dev-guide §8.1）。
+- **涉及文件**：`src/data_provider/base.py`、`src/data_provider/__init__.py`、`src/schemas/financial.py`
 - **学习点**：先定义"接口"再写"实现"，是面向对象的核心习惯。这样未来换数据源（如同花顺）时，只需新写一个 fetcher，不用改业务代码（dev-guide §6.3 原则 3）。
 - **验证**：`uv run pytest` 仍通过（此步无新测试，确保没破坏既有）。
 - **断点提交**：
   ```bash
-  git add data_provider/base.py data_provider/__init__.py src/schemas/financial.py
+  git add src/data_provider/base.py src/data_provider/__init__.py src/schemas/financial.py
   git commit -m "feat(data): add base fetcher interface and field schemas"
   ```
 
@@ -153,13 +103,13 @@ git push origin main
 
 - [ ] 已完成此步（断点提交后打勾）
 
-- **做什么**：实现 `data_provider/tushare_fetcher.py`，含限流器（每分钟调用上限）与指数退避重试（FR-DATA-07）。
-- **涉及文件**：`data_provider/tushare_fetcher.py`
+- **做什么**：实现 `src/data_provider/tushare_fetcher.py`，含限流器（每分钟调用上限）与指数退避重试（FR-DATA-07）。
+- **涉及文件**：`src/data_provider/tushare_fetcher.py`
 - **学习点**：Tushare 按积分限流，调用太快会被拒。**指数退避** = 失败后等 1s、2s、4s 再重试，是处理外部接口不稳定的标准手法。
 - **验证**：写一个 `tests/test_tushare_fetcher.py`，mock 掉网络，测试限流与重试逻辑。
 - **断点提交**：
   ```bash
-  git add data_provider/tushare_fetcher.py tests/test_tushare_fetcher.py
+  git add src/data_provider/tushare_fetcher.py tests/test_tushare_fetcher.py
   git commit -m "feat(data): implement tushare fetcher with rate limit"
   ```
 
@@ -410,12 +360,12 @@ git push origin main
 - [ ] 已完成此步（断点提交后打勾）
 
 - **做什么**：采 Top10 热搜（百度/微博/东财）→ LLM 识别受益行业 → RAG 映射个股 Top5，落 `data/hot/`。
-- **涉及文件**：`src/agents/hotspot_agent.py`、`data_provider/hot_search_fetcher.py`
+- **涉及文件**：`src/agents/hotspot_agent.py`、`src/data_provider/hot_search_fetcher.py`
 - **学习点**：热搜来源不稳定，要多来源 fallback，单个失败不拖垮（风险 R-05）。
 - **验证**：`uv run pytest tests/test_hotspot_agent.py`
 - **断点提交**：
   ```bash
-  git add src/agents/hotspot_agent.py data_provider/hot_search_fetcher.py tests/test_hotspot_agent.py
+  git add src/agents/hotspot_agent.py src/data_provider/hot_search_fetcher.py tests/test_hotspot_agent.py
   git commit -m "feat(hotspot): add hotspot tracking agent"
   ```
 

@@ -83,7 +83,7 @@ date: 2026-07-21
 
 ### 2.2 架构原则（来源：`coding.md` + `openclaw` + `daily_stock_analysis`）
 
-1. **目录边界清晰**：后端逻辑在 `src/`，数据源适配在 `data_provider/`，API 在 `api/`，桌面端在 `apps/desktop/`，部署在 `scripts/` 与 `manifests/`。
+1. **目录边界清晰**：后端逻辑与数据源适配均在 `src/`（`src/data_provider/` 放数据源适配），API 在 `api/`，桌面端在 `apps/desktop/`，部署在 `scripts/` 与 `manifests/`。
 2. **配置抽离**：路径、超时、模型参数、API Key 全部走 `Settings`，禁止硬编码。
 3. **数据源单一真源 + Fallback**：固定 Tushare 为主，预留适配器接口（参考 `daily_stock_analysis/data_provider` 的 `base.py` + 多 fetcher）。
 4. **纯逻辑与 I/O 分层**：评分/评级/权重计算为纯函数，单独单测；爬取/写盘为 I/O 层，集成测试覆盖（`qtcloud-devops/AGENTS.md` 第 3、8、9 条）。
@@ -129,8 +129,8 @@ alpha-jerry/
 │   ├── notifications/         # 推送（邮件/微信）
 │   ├── scheduler/             # 定时任务
 │   ├── schemas/               # 数据结构/Pydantic 模型
+│   ├── data_provider/         # 数据源适配（Tushare 主 + 适配器接口）
 │   └── utils/
-├── data_provider/             # 数据源适配（Tushare 主 + 适配器接口）
 ├── api/                       # FastAPI 路由
 ├── apps/
 │   └── desktop/               # Electron + React 桌面端

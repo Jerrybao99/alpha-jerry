@@ -218,8 +218,8 @@ alpha-jerry/
 │   ├── notifications/         # 推送（邮件/微信）
 │   ├── scheduler/             # 定时任务
 │   ├── schemas/               # Pydantic 模型
+│   ├── data_provider/         # 数据源适配（Tushare 主 + BaseFetcher 抽象）
 │   └── utils/
-├── data_provider/             # 数据源适配（Tushare 主 + BaseFetcher 抽象）
 ├── api/                       # FastAPI 路由
 ├── apps/desktop/              # Electron + React 桌面端
 ├── scripts/                   # 辅助脚本
@@ -229,7 +229,7 @@ alpha-jerry/
 ```
 
 **目录边界硬规则**（AI 改动时须遵守）：
-- 后端逻辑 → `src/`；数据源适配 → `data_provider/`；API → `api/`；桌面端 → `apps/desktop/`；部署 → `scripts/` + `manifests/`。
+- 后端逻辑 → `src/`（含数据源适配 `src/data_provider/`）；API → `api/`；桌面端 → `apps/desktop/`；部署 → `scripts/` + `manifests/`。
 - 纯逻辑（评分/评级/权重）与 I/O（爬取/写盘）分层：纯逻辑单独单测，I/O 走集成测试。
 - 配置抽离：路径/超时/模型/API Key 全走 `Settings`，禁止硬编码。
 - 单 PR 单功能，≤ 20 文件，超出须在 PR 描述说明原因。
