@@ -89,13 +89,13 @@ date: 2026-07-21
 
 - [ ] 已完成此步（断点提交后打勾）
 
-- **做什么**：在 `src/data_provider/base.py` 定义 `BaseFetcher` 抽象接口；在 `src/schemas/` 用 Pydantic 定义特征工程字段模型（dev-guide §8.1）。
-- **涉及文件**：`src/data_provider/base.py`、`src/data_provider/__init__.py`、`src/schemas/financial.py`
+- **做什么**：在 `src/data/base.py` 定义 `BaseFetcher` 抽象接口；在 `src/schemas/` 用 Pydantic 定义特征工程字段模型（dev-guide §8.1）。
+- **涉及文件**：`src/data/base.py`、`src/data/__init__.py`、`src/schemas/financial.py`
 - **学习点**：先定义"接口"再写"实现"，是面向对象的核心习惯。这样未来换数据源（如同花顺）时，只需新写一个 fetcher，不用改业务代码（dev-guide §6.3 原则 3）。
 - **验证**：`uv run pytest` 仍通过（此步无新测试，确保没破坏既有）。
 - **断点提交**：
   ```bash
-  git add src/data_provider/base.py src/data_provider/__init__.py src/schemas/financial.py
+  git add src/data/base.py src/data/__init__.py src/schemas/financial.py
   git commit -m "feat(data): add base fetcher interface and field schemas"
   ```
 
@@ -103,13 +103,13 @@ date: 2026-07-21
 
 - [ ] 已完成此步（断点提交后打勾）
 
-- **做什么**：实现 `src/data_provider/tushare_fetcher.py`，含限流器（每分钟调用上限）与指数退避重试（FR-DATA-07）。
-- **涉及文件**：`src/data_provider/tushare_fetcher.py`
+- **做什么**：实现 `src/data/tushare_fetcher.py`，含限流器（每分钟调用上限）与指数退避重试（FR-DATA-07）。
+- **涉及文件**：`src/data/tushare_fetcher.py`
 - **学习点**：Tushare 按积分限流，调用太快会被拒。**指数退避** = 失败后等 1s、2s、4s 再重试，是处理外部接口不稳定的标准手法。
 - **验证**：写一个 `tests/test_tushare_fetcher.py`，mock 掉网络，测试限流与重试逻辑。
 - **断点提交**：
   ```bash
-  git add src/data_provider/tushare_fetcher.py tests/test_tushare_fetcher.py
+  git add src/data/tushare_fetcher.py tests/test_tushare_fetcher.py
   git commit -m "feat(data): implement tushare fetcher with rate limit"
   ```
 
@@ -360,12 +360,12 @@ date: 2026-07-21
 - [ ] 已完成此步（断点提交后打勾）
 
 - **做什么**：采 Top10 热搜（百度/微博/东财）→ LLM 识别受益行业 → RAG 映射个股 Top5，落 `data/hot/`。
-- **涉及文件**：`src/agents/hotspot_agent.py`、`src/data_provider/hot_search_fetcher.py`
+- **涉及文件**：`src/agents/hotspot_agent.py`、`src/data/hot_search_fetcher.py`
 - **学习点**：热搜来源不稳定，要多来源 fallback，单个失败不拖垮（风险 R-05）。
 - **验证**：`uv run pytest tests/test_hotspot_agent.py`
 - **断点提交**：
   ```bash
-  git add src/agents/hotspot_agent.py src/data_provider/hot_search_fetcher.py tests/test_hotspot_agent.py
+  git add src/agents/hotspot_agent.py src/data/hot_search_fetcher.py tests/test_hotspot_agent.py
   git commit -m "feat(hotspot): add hotspot tracking agent"
   ```
 
