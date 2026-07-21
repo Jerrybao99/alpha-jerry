@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node / 桌面端
+node_modules/
+build/
+dist/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Office 临时文件
+~$*.docx
+~$*.xlsx
+
+# 数据库
+*.db
+*.sqlite
+
+# 运行期数据（不上传云端，保护用户隐私）
+data/
+
+# 密钥与本地配置
+.env
+.env.local
+
+# IDE（团队共享配置除外）
+.idea/
+.vscode/
+
+# 日志
+*.log
