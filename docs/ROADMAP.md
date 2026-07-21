@@ -83,27 +83,7 @@ cd C:/Users/Administrator/Downloads/GitCode/alpha-jerry
 - [x] 已完成此步（断点提交后打勾）
 
 - **做什么**：在项目根目录初始化 git，创建 `.gitignore`、`README.md`、`CHANGELOG.md`。
-- **涉及文件**：`.gitignore`、`README.md`、`CHANGELOG.md`
-- **关键命令**：
-  ```bash
-  git init
-  ```
-- **`.gitignore` 至少包含**（参考 coding.md）：
-  ```
-  __pycache__/
-  *.pyc
-  .venv/
-  node_modules/
-  build/
-  dist/
-  .DS_Store
-  Thumbs.db
-  *.db
-  *.sqlite
-  .env
-  /data/
-  ```
-- **学习点**：`data/` 入 ignore 是因为运行期数据不进版本库（dev-guide §5）；`.env` 含密钥绝不入库（NFR-08）。
+
 - **验证**：`git status` 显示三个新文件。
 - **断点提交**：
   ```bash
