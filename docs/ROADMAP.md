@@ -66,8 +66,6 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 cd C:/Users/Administrator/Downloads/GitCode/alpha-jerry
 ```
 
-> **学习点**：`uv` 是一个极快的 Python 包管理器，一个项目一个虚拟环境，用 `uv.lock` 锁定依赖版本，避免"在我电脑上能跑"的问题。
-
 ### 0.5 需求追溯（对应 dev-guide §9）
 
 每个里程碑都会标注「**需求覆盖**」，列出它实现的 `BR-*`（业务需求）与 `FR-*`（功能需求）编号，编号定义见 [dev-guide.md §9](./dev-guide.md#9-功能需求清单可追溯)。这样每一步都能回答"我在交付哪条需求"，便于验收与回溯。
@@ -82,7 +80,7 @@ cd C:/Users/Administrator/Downloads/GitCode/alpha-jerry
 
 ### Step 0.1 初始化仓库与基础文件
 
-- [ ] 已完成此步（断点提交后打勾）
+- [x] 已完成此步（断点提交后打勾）
 
 - **做什么**：在项目根目录初始化 git，创建 `.gitignore`、`README.md`、`CHANGELOG.md`。
 - **涉及文件**：`.gitignore`、`README.md`、`CHANGELOG.md`
@@ -103,7 +101,7 @@ cd C:/Users/Administrator/Downloads/GitCode/alpha-jerry
   *.db
   *.sqlite
   .env
-  data/
+  /data/
   ```
 - **学习点**：`data/` 入 ignore 是因为运行期数据不进版本库（dev-guide §5）；`.env` 含密钥绝不入库（NFR-08）。
 - **验证**：`git status` 显示三个新文件。
