@@ -32,7 +32,7 @@ def test_settings_defaults() -> None:
     assert s.deepseek_base_url == "https://api.deepseek.com"
     assert s.data_dir == "data"
     assert s.concurrency == 4
-    assert s.tushare_rate_limit == 200
+    assert s.tushare_rate_limit == 500
     assert s.wechat_push_enabled is False
 
 

@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     # ===== 数据与采集 =====
     data_dir: str = "data"
     concurrency: int = 4
-    tushare_rate_limit: int = 200  # 每分钟调用上限
+    tushare_rate_limit: int = 500  # 每分钟调用上限（5000积分 500次/分，见 doc_id=290）
 
     # ===== 定时任务（dev-guide §10.2）=====
     hotspot_cron_09: str = "0 9 * * *"

@@ -345,7 +345,9 @@ alpha-jerry/
 
 采集并落地到 `data/fin/YYMMDD.xlsx`，**列名采用 Tushare 接口真实返回字段名、数据为真实值**（owner 决策，对齐 https://tushare.pro/document/2；偏离原中文字段名约定已记 CHANGELOG）。
 
-单一事实来源为代码：`src/schemas/financial.py` 的 `OUTPUT_COLUMNS`（46 列）与 `REQUIREMENT_ALIGNMENT`（原始 55 需求→Tushare 字段对齐表）。字段来源接口：`stock_basic` / `income` / `balancesheet` / `cashflow` / `fina_indicator` / `daily_basic`。
+单一事实来源为代码：`src/schemas/financial.py` 的 `OUTPUT_COLUMNS`（55 列）与 `REQUIREMENT_ALIGNMENT`（原始 55 需求→Tushare 字段对齐表，含真实字段中文翻译 `chinese_name`）。接口注册表见 `src/data/interfaces.py` 的 `TUSHARE_INTERFACES`（记录 `api_name` / `vip_api_name` / `doc_url` / `min_points`）。字段对应表 CSV 见 `docs/field-mapping.csv`，完整字段契约见 `docs/data-contract.md`。
+
+**接口选型（5000 积分可调用，优先 vip 高级接口）**：财务三表 / 指标 / 预告 / 快报 / 主营构成使用 `_vip` 后缀接口（按 `period` 批量取全市场），其余接口使用常规接口（≤5000 积分）。字段来源接口：`stock_basic` / `income_vip` / `balancesheet_vip` / `cashflow_vip` / `fina_indicator_vip` / `daily_basic`。
 
 原始 55 个需求字段对齐结果：
 
@@ -356,7 +358,9 @@ alpha-jerry/
 | computed_in_scoring | 6 | 不落盘，由 M2 评分纯函数基于真实字段计算：股东权益比、限售股合计、每股经营现金流/每股收益、净利润占营业利润比、主营利润率、投资收益占比 |
 | unavailable | 5 | Tushare 无且无近似，首版不采集：调整后每股净资产、A股数量、B股数量、国家持股数量、国有法人持股 |
 
-各接口请求字段见 `STOCK_BASIC_FIELDS` / `INCOME_FIELDS` / `BALANCESHEET_FIELDS` / `CASHFLOW_FIELDS` / `FINA_INDICATOR_FIELDS` / `DAILY_BASIC_FIELDS`。百分比类字段（`netprofit_yoy`/`or_yoy`/`grossprofit_margin`/`debt_to_assets`/`netprofit_margin`）以百分数数值返回，写盘加 `%` 后缀保留两位小数。
+**补充字段（13 个，服务一票否决 §8.2 / 三维评分 §8.3）**：`SUPPLEMENTARY_FIELDS` 记录额外采集的字段（`money_cap`/`fin_exp_int_inc`/`audit_result`/`audit_agency`/`pledge_ratio`/`free_cashflow`/`inv_turn`/`pe_ttm`/`pb`/`dv_ttm`/`cash_div`/`total_mv`/`circ_mv`），来源 `balancesheet_vip`/`income_vip`/`fina_audit`/`pledge_stat`/`cashflow_vip`/`fina_indicator_vip`/`daily_basic`/`dividend`，追加在 `SUPPLEMENTARY_COLUMNS` 中。
+
+各接口请求字段见 `STOCK_BASIC_FIELDS` / `INCOME_FIELDS` / `BALANCESHEET_FIELDS` / `CASHFLOW_FIELDS` / `FINA_INDICATOR_FIELDS` / `DAILY_BASIC_FIELDS` / `FINA_AUDIT_FIELDS` / `PLEDGE_STAT_FIELDS` / `DIVIDEND_FIELDS`。百分比类字段（`netprofit_yoy`/`or_yoy`/`grossprofit_margin`/`debt_to_assets`/`netprofit_margin`/`dv_ttm`）以百分数数值返回，写盘加 `%` 后缀保留两位小数。
 
 ### 8.2 一票否决规则 `[RIGID]`
 
@@ -561,10 +565,10 @@ $$
 DEEPSEEK_API_KEY=            # LLM 密钥
 DEEPSEEK_MODEL=deepseek-chat
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-TUSHARE_TOKEN=               # Tushare Pro token
+TUSHARE_TOKEN=               # Tushare Pro token（注册 tushare.pro 获取；vip 接口需 5000 积分）
 DATA_DIR=data                # 数据根目录
 CONCURRENCY=4                # 采集并发
-TUSHARE_RATE_LIMIT=200       # 每分钟调用上限
+TUSHARE_RATE_LIMIT=500       # 每分钟调用上限（5000积分=500次/分；2000积分=200次/分）
 HOTSPOT_CRON_09=0 9 * * *
 HOTSPOT_CRON_17=0 17 * * *
 PORTFOLIO_CRON_09=0 9 * * *

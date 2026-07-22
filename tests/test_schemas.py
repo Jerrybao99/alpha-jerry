@@ -1,7 +1,7 @@
-"""特征工程字段模型与数据源抽象的纯逻辑单测（Step 1.1，Tushare 真实字段对齐）。
+"""特征工程字段模型与数据源抽象的纯逻辑单测（Step 1.1，Tushare 真实字段对齐 + vip 接口）。
 
 不触网络；验证 §8.1 需求对齐表、各接口真实字段集合、输出列为 Tushare 真实字段名、
-BaseFetcher 不可实例化。
+接口注册表（vip 优先）、补充字段（一票否决/评分）、BaseFetcher 不可实例化。
 """
 
 from __future__ import annotations
@@ -10,16 +10,23 @@ import pytest
 from pydantic import ValidationError
 
 from src.data.base import BaseFetcher
+from src.data.interfaces import TUSHARE_INTERFACES, get_doc_url, get_vip_api_name
 from src.schemas.financial import (
+    ALL_OUTPUT_COLUMNS,
     BALANCESHEET_FIELDS,
     CASHFLOW_FIELDS,
     DAILY_BASIC_FIELDS,
+    DIVIDEND_FIELDS,
+    FINA_AUDIT_FIELDS,
     FINA_INDICATOR_FIELDS,
     INCOME_FIELDS,
     OUTPUT_COLUMNS,
     PERCENT_FIELDS,
+    PLEDGE_STAT_FIELDS,
     REQUIREMENT_ALIGNMENT,
     STOCK_BASIC_FIELDS,
+    SUPPLEMENTARY_COLUMNS,
+    SUPPLEMENTARY_FIELDS,
     StockFeatures,
     StockInfo,
     requirement_coverage,
@@ -31,6 +38,12 @@ def test_requirement_alignment_covers_all_55() -> None:
     reqs = [a.requirement for a in REQUIREMENT_ALIGNMENT]
     assert len(reqs) == 55
     assert len(set(reqs)) == 55
+
+
+def test_requirement_has_chinese_name() -> None:
+    """每条对齐记录必须有非空 chinese_name（真实字段中文翻译）。"""
+    for a in REQUIREMENT_ALIGNMENT:
+        assert a.chinese_name, f"缺少中文翻译: {a.requirement}"
 
 
 def test_requirement_match_types_valid() -> None:
@@ -54,7 +67,7 @@ def test_requirement_coverage_summary() -> None:
 
 
 def test_endpoint_field_lists_no_duplicate() -> None:
-    """各接口字段集内部无重复，且含 ts_code 主键（daily_basic 例外也含）。"""
+    """各接口字段集内部无重复，且含 ts_code 主键。"""
     for fields in (
         STOCK_BASIC_FIELDS,
         INCOME_FIELDS,
@@ -62,6 +75,9 @@ def test_endpoint_field_lists_no_duplicate() -> None:
         CASHFLOW_FIELDS,
         FINA_INDICATOR_FIELDS,
         DAILY_BASIC_FIELDS,
+        FINA_AUDIT_FIELDS,
+        PLEDGE_STAT_FIELDS,
+        DIVIDEND_FIELDS,
     ):
         assert len(fields) == len(set(fields)), fields
         assert "ts_code" in fields
@@ -72,7 +88,6 @@ def test_output_columns_are_tushare_real_names() -> None:
     cols = list(OUTPUT_COLUMNS)
     assert cols[0] == "ts_code"
     assert len(cols) == len(set(cols))  # 无重复
-    # 抽查关键真实字段名存在（对齐官方文档）
     for f in (
         "n_income_attr_p",
         "undistr_porfit",
@@ -82,9 +97,17 @@ def test_output_columns_are_tushare_real_names() -> None:
         "debt_to_assets",
         "ocf_to_shortdebt",
         "float_share",
+        "fin_exp_int_inc",
+        "money_cap",
+        "free_cashflow",
+        "inv_turn",
+        "pe_ttm",
+        "pb",
+        "dv_ttm",
+        "total_mv",
+        "circ_mv",
     ):
         assert f in cols, f
-    # StockFeatures.output_columns() 与 OUTPUT_COLUMNS 一致
     assert StockFeatures.output_columns() == cols
 
 
@@ -92,11 +115,70 @@ def test_output_columns_match_model_fields() -> None:
     """输出列必须是 StockFeatures 已声明字段，保证写盘不缺列。"""
     declared = set(StockFeatures.model_fields)
     assert set(OUTPUT_COLUMNS) <= declared
+    assert set(ALL_OUTPUT_COLUMNS) <= declared
+
+
+def test_supplementary_columns_no_overlap() -> None:
+    """补充列与核心列无重复，ALL_OUTPUT_COLUMNS 无重复。"""
+    assert set(SUPPLEMENTARY_COLUMNS).isdisjoint(set(OUTPUT_COLUMNS))
+    all_cols = list(ALL_OUTPUT_COLUMNS)
+    assert len(all_cols) == len(set(all_cols))
+
+
+def test_all_output_columns_match() -> None:
+    """all_output_columns() 返回 ALL_OUTPUT_COLUMNS。"""
+    assert StockFeatures.all_output_columns() == list(ALL_OUTPUT_COLUMNS)
 
 
 def test_percent_fields_subset_of_output() -> None:
     """百分比字段必须是输出列。"""
     assert PERCENT_FIELDS <= set(OUTPUT_COLUMNS)
+
+
+def test_supplementary_fields_valid() -> None:
+    """补充字段 endpoint 必须在接口注册表中，purpose 为 veto 或 scoring。"""
+    for sf in SUPPLEMENTARY_FIELDS:
+        assert sf.endpoint in TUSHARE_INTERFACES, sf
+        assert sf.purpose in {"veto", "scoring"}, sf
+        assert sf.chinese_name, sf
+
+
+# ===== 接口注册表测试 =====
+VIP_ENDPOINTS = {"income", "balancesheet", "cashflow", "fina_indicator", "forecast", "express", "fina_mainbz"}
+
+
+def test_tushare_interfaces_registry() -> None:
+    """接口注册表非空，每个接口有 api_name/vip_api_name/doc_url/min_points。"""
+    assert len(TUSHARE_INTERFACES) >= 15
+    for key, iface in TUSHARE_INTERFACES.items():
+        assert iface.api_name, key
+        assert iface.vip_api_name, key
+        assert iface.doc_url.startswith("https://tushare.pro/document/2?doc_id="), key
+        assert iface.min_points > 0, key
+        assert iface.description, key
+
+
+def test_vip_interfaces() -> None:
+    """财务三表/指标/预告/快报/主营构成有 vip 后缀高级接口。"""
+    for key in VIP_ENDPOINTS:
+        iface = TUSHARE_INTERFACES[key]
+        assert iface.vip_api_name.endswith("_vip"), f"{key} 缺少 vip 接口"
+        assert iface.vip_api_name != iface.api_name, f"{key} vip 接口名与常规接口名相同"
+
+
+def test_non_vip_interfaces() -> None:
+    """非财务三表接口无 vip 后缀，vip_api_name 同 api_name。"""
+    non_vip = set(TUSHARE_INTERFACES) - VIP_ENDPOINTS
+    for key in non_vip:
+        iface = TUSHARE_INTERFACES[key]
+        assert iface.vip_api_name == iface.api_name, f"{key} 不应有 vip 接口"
+
+
+def test_get_vip_api_name_and_doc_url() -> None:
+    """get_vip_api_name / get_doc_url 正确返回。"""
+    assert get_vip_api_name("income") == "income_vip"
+    assert get_vip_api_name("stock_basic") == "stock_basic"
+    assert get_doc_url("income") == "https://tushare.pro/document/2?doc_id=33"
 
 
 def test_stock_features_required_ts_code() -> None:
@@ -115,13 +197,21 @@ def test_stock_features_real_field_roundtrip() -> None:
         n_income_attr_p=3.4e9,
         roe=12.5,
         float_share=2.9e10,
+        money_cap=5.0e11,
+        audit_result="标准无保留意见",
+        pledge_ratio=15.3,
+        pe_ttm=6.5,
+        dv_ttm=4.2,
     )
     dumped = feat.model_dump()
     assert dumped["ts_code"] == "600000.SH"
     assert dumped["n_income_attr_p"] == 3.4e9
     assert dumped["float_share"] == 2.9e10
-    # dump 的键即 Tushare 真实字段名，可直接作为 CSV 表头
-    assert set(dumped) >= set(OUTPUT_COLUMNS)
+    assert dumped["money_cap"] == 5.0e11
+    assert dumped["audit_result"] == "标准无保留意见"
+    assert dumped["pledge_ratio"] == 15.3
+    assert dumped["pe_ttm"] == 6.5
+    assert set(dumped) >= set(ALL_OUTPUT_COLUMNS)
 
 
 def test_stock_features_tolerates_missing() -> None:
@@ -130,6 +220,8 @@ def test_stock_features_tolerates_missing() -> None:
     dumped = feat.model_dump()
     assert dumped["n_income_attr_p"] is None
     assert dumped["eps"] is None
+    assert dumped["money_cap"] is None
+    assert dumped["audit_result"] is None
 
 
 def test_stock_info_real_fields() -> None:

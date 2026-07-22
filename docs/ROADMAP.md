@@ -36,26 +36,15 @@ date: 2026-07-21
 
 ### Step 1.1 数据源抽象与字段模型
 
-- **涉及文件**：`src/data/base.py`、`src/data/__init__.py`、`src/schemas/financial.py`
-- [x] 在 `src/data/base.py` 定义 `BaseFetcher` 抽象接口（主键 `ts_code`）；在 `src/schemas/financial.py` 用 Pydantic 定义特征工程字段模型——字段名即 Tushare 真实字段名（`OUTPUT_COLUMNS` 46 列）+ `REQUIREMENT_ALIGNMENT`（§8.1 的 55 需求→Tushare 字段对齐表）。
-
-- **断点提交**：
-  ```bash
-   src/data/base.py src/data/__init__.py src/schemas/financial.py
-  git commit -m "feat(data): add base fetcher interface and field schemas"
-  ```
+- **涉及文件**：`src/data/base.py`、`src/data/__init__.py`、`src/data/interfaces.py`、`src/schemas/financial.py`、`docs/data-contract.md`、`docs/field-mapping.csv`、`scripts/gen_field_mapping.py`
+- [x] 在 `src/data/base.py` 定义 `BaseFetcher` 抽象接口（主键 `ts_code`）；在 `src/data/interfaces.py` 建立 `TUSHARE_INTERFACES` 接口注册表（20 个 5000 积分可调用接口，优先 vip 高级接口，含文档 URL）；在 `src/schemas/financial.py` 用 Pydantic 定义特征工程字段模型——字段名即 Tushare 真实字段名（`OUTPUT_COLUMNS` 55 列 + `SUPPLEMENTARY_COLUMNS` 5 列）+ `REQUIREMENT_ALIGNMENT`（§8.1 的 55 需求→Tushare 字段对齐表，含 `chinese_name` 中文翻译）+ `SUPPLEMENTARY_FIELDS`（13 个一票否决/评分辅助字段）。字段对应表 CSV 见 `docs/field-mapping.csv`，完整字段契约见 `docs/data-contract.md`。
 
 ### Step 1.2 Tushare 适配器与限流重试
 
-- [ ] 已完成此步（断点提交后打勾）
+- **涉及文件**：`src/data/tushare_fetcher.py`、`.env`（用户填入 `TUSHARE_TOKEN`）、`tests/test_tushare_fetcher.py`
+- [x] 实现 `src/data/tushare_fetcher.py`，含限流器（每分钟调用上限）与指数退避重试（FR-DATA-07）。财务三表/指标/预告/快报/主营构成优先调用 `TUSHARE_INTERFACES` 中的 `_vip` 后缀接口（按 `period` 批量取全市场），其余接口调用常规接口。通过 `get_vip_api_name()` 获取实际接口名，`get_doc_url()` 获取文档链接。初始化时从 `Settings.tushare_token` 读取 token，通过 `ts.set_token()` 或 `ts.pro_api(token)` 注入 SDK（doc_id=40/131）；token 为空时抛出明确错误提示用户配置 `.env`。
 
-- **做什么**：实现 `src/data/tushare_fetcher.py`，含限流器（每分钟调用上限）与指数退避重试（FR-DATA-07）。
-- **涉及文件**：`src/data/tushare_fetcher.py`
-- **学习点**：Tushare 按积分限流，调用太快会被拒。**指数退避** = 失败后等 1s、2s、4s 再重试，是处理外部接口不稳定的标准手法。
-- **验证**：写一个 `tests/test_tushare_fetcher.py`，mock 掉网络，测试限流与重试逻辑。
 - **断点提交**：
-  ```bash
-  git add src/data/tushare_fetcher.py tests/test_tushare_fetcher.py
   git commit -m "feat(data): implement tushare fetcher with rate limit"
   ```
 
