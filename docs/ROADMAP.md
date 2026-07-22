@@ -16,39 +16,23 @@ date: 2026-07-21
 
 ### Step 0.2 依赖管理与工具配置
 
-- [x] 用 `uv` 初始化 Python 项目，配置 `pyproject.toml`，加入 ruff（格式/检查）与 pytest（测试）。
 - **涉及文件**：`pyproject.toml`、`uv.lock`、`.env.example`
+- [x] 用 `uv` 初始化 Python 项目，配置 `pyproject.toml`，加入 ruff（格式/检查）与 pytest（测试）。
 
 ### Step 0.3 目录骨架与配置入口
 
-- [x] 按 dev-guide §5 创建源码目录结构；写 `AGENTS.md`（项目级 AI 行为规范）；写 `src/config.py` 的 `Settings` 类雏形与 `.env.example`；建 `main.py` 作为运行入口（dev-guide §10.3）。
 - **涉及文件**：`AGENTS.md`、`src/config.py`、`src/__init__.py`、各子目录 `__init__.py`、`main.py`、`.env.example`
+- [x] 按 dev-guide §5 创建源码目录结构；写 `AGENTS.md`（项目级 AI 行为规范）；写 `src/config.py` 的 `Settings` 类雏形与 `.env.example`；建 `main.py` 作为运行入口（dev-guide §10.3）。
 
 ### Step 0.4 CI 门禁与第一个骨架测试
 
-- [ ] 已完成此步（断点提交后打勾）
-
-- **做什么**：加 GitHub Actions workflow（ruff + pytest），写一个最简单的骨架测试让 CI 有东西可跑。
 - **涉及文件**：`.github/workflows/ci.yml`、`tests/test_skeleton.py`
-- **`tests/test_skeleton.py` 示例**：
-  ```python
-  def test_settings_importable():
-      from src.config import Settings
-      assert Settings is not None
-  ```
-- **学习点**：CI（持续集成）在你每次 push 时自动跑检查，相当于一个"永不疲倦的评审员"；先写一个能通过的测试，确保管道通顺，再逐步加内容。
-- **验证**：
+- [x] 加 GitHub Actions workflow（ruff + pytest），写一个最简单的骨架测试让 CI 有东西可跑。
+
   ```bash
-  uv run ruff check .
-  uv run pytest -m "not network"
-  ```
-- **断点提交**：
-  ```bash
-  git add .github/ tests/test_skeleton.py
+  
   git commit -m "ci: add ruff and pytest gates"
   ```
-
----
 
 ## M1 数据采集
 
