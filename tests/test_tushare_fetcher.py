@@ -1,11 +1,5 @@
-"""Tushare 适配器单测（Step 1.2）——全 mock，不触网络（FR-DATA-06/07）。
-
-覆盖：
-- token 缺失报 TushareTokenError。
-- RateLimiter 滑动窗口超额阻塞。
-- _call 指数退避重试（1s/2s/4s）成功、耗尽抛 TushareApiError。
-- vip 接口名优先（query 收到 income_vip 等）。
-- fetch_stock_list / fetch_financials 聚合（取最新一期、NaN→None）。
+"""Tushare 适配器单测。全 mock 验证 token 缺失报错、限流阻塞、指数退避重试、
+vip 接口名优先、采集聚合（取最新/NaN→None）。不触网络。
 """
 
 from __future__ import annotations

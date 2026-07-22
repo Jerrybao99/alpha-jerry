@@ -27,6 +27,7 @@
 
 - 修订 Step 1.1 采集接口升级为 5000 积分 vip 优先策略：财务三表/指标/预告/快报/主营构成使用 `_vip` 后缀接口（按 period 批量取全市场）；`OUTPUT_COLUMNS` 从 46 列扩充至 55 列（新增 fin_exp_int_inc/money_cap/free_cashflow/inv_turn/pe_ttm/pb/dv_ttm/total_mv/circ_mv）；`PERCENT_FIELDS` 新增 `dv_ttm`；`StockFeatures` 新增 13 个补充字段；`tests/test_schemas.py` 新增接口注册表/vip 接口/补充字段/中文翻译等 10 项测试（共 21 项）
 - 同步更新 `docs/dev-guide.md` §8.1（接口选型/vip 优先/补充字段/字段对应表 CSV）与 `docs/ROADMAP.md` Step 1.1/1.2（涉及文件/ vip 接口说明）
+- **全项目落地文件格式由 xlsx 改为 csv**（owner 决策，Step 1.4 起）：所有 `data/` 下产物（`YYMMDD.csv` / `-评分.csv` / `-评级.csv` / `-否决.csv` / `-失败.csv` / `-荐股.csv` / 持仓 `.csv` / 热点 `.csv` 等）统一为 CSV；`src/core/pipeline.py` 失败清单改用 `csv` 标准库写入（移除 `openpyxl` 依赖）；新增 `src/reports/csv_writer.py`（中文列头 + 百分比带% + 大数亿/万 + CJK 对齐 + 数据来源表）；同步修订 `docs/dev-guide.md` §8（RIGID 业务规则文件名）/ §7.1（`save_xlsx`→`save_csv`）/ §5 目录树、`docs/prd.md`、`docs/brd.md`、`docs/brd-1.md`、`docs/ROADMAP.md`、`AGENTS.md` 中所有 xlsx 引用为 csv
 
 ## 版本规划
 

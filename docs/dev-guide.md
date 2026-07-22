@@ -63,7 +63,7 @@ date: 2026-07-21
 
   | 中文 | 英文简写 | 用途 |
   |---|---|---|
-  | 财务 | `fin` | 采集/评分/评级/否决/失败 xlsx |
+  | 财务 | `fin` | 采集/评分/评级/否决/失败 csv |
   | 分析 | `analysis` | 荐股 Top20 报告 |
   | 持股 | `hold` | 持仓基线与 09/17 重算结果 |
   | 热点 | `hot` | 热搜缓存与识别结果 |
@@ -96,7 +96,7 @@ date: 2026-07-21
 
 | 编号 | 业务目标 | 衡量方式 | 达成时限 |
 |---|---|---|---|
-| BO-01 | 落地完整基本面分析闭环 | step1~step4 全流程可一键跑通并产出 xlsx | M3 |
+| BO-01 | 落地完整基本面分析闭环 | step1~step4 全流程可一键跑通并产出 csv | M3 |
 | BO-02 | 评分规则可解释可审计 | 否决记录、评分明细、评级依据可追溯 | M2 |
 | BO-03 | 持仓风险主动监控 | 每日 09:00/17:00 自动重算并推送风险提示 | M5 |
 | BO-04 | 对话式零门槛交互 | 自然语言即可触发采集/评分/报告/持仓分析 | M4 |
@@ -171,7 +171,7 @@ date: 2026-07-21
 | 嵌入模型 | bge-small-zh（本地） | — | 中文金融语义，离线可跑 |
 | 后端 API | FastAPI | 0.110+ | 桌面端与调度调用 |
 | 调度 | APScheduler / cron | latest | 定时任务 |
-| 数据处理 | pandas / openpyxl | latest | xlsx 读写 |
+| 数据处理 | pandas / csv | latest | csv 读写 |
 | 桌面端 | Electron + React + Vite | — | 套壳本地 FastAPI，参考 openclaw apps |
 | 配置 | pydantic-settings + `.env` | latest | `Settings` 类集中管理 |
 | 测试 | pytest | >= 8 | 单元 + 集成 |
@@ -200,10 +200,10 @@ alpha-jerry/
 │   ├── data-contract.md       # 字段契约与计算口径
 │   └── prompt-library.md      # Prompt 模板库
 ├── data/                      # 运行期数据（gitignore）
-│   ├── fin/                   # YYMMDD.xlsx / -评分 / -评级 / -否决 / -失败
-│   ├── analysis/              # YYMMDD-荐股.xlsx
-│   ├── hold/                  # YYMMDD.xlsx / -09 / -17
-│   ├── hot/                   # YYMMDD-HH.xlsx
+│   ├── fin/                   # YYMMDD.csv / -评分 / -评级 / -否决 / -失败
+│   ├── analysis/              # YYMMDD-荐股.csv
+│   ├── hold/                  # YYMMDD.csv / -09 / -17
+│   ├── hot/                   # YYMMDD-HH.csv
 │   ├── monitor/               # Agent 执行链
 │   ├── feedback/              # 用户反馈
 │   └── rag/                   # 向量库与知识库
@@ -272,23 +272,23 @@ alpha-jerry/
 ```
 全 A 股清单
   │ ① 采集（Tushare，特征工程字段）
-  ▼ data/fin/YYMMDD.xlsx
+  ▼ data/fin/YYMMDD.csv
   │ ② 评分（否决 → 三维评分 → 行业权重 → 综合分）
-  ▼ data/fin/YYMMDD-评分.xlsx
+  ▼ data/fin/YYMMDD-评分.csv
   │ ③ 评级（综合分 → 四级评级 + AI 点评）
-  ▼ data/fin/YYMMDD-评级.xlsx
+  ▼ data/fin/YYMMDD-评级.csv
   │ ④ 报告（综合分降序 Top20 + 持仓表）
-  ▼ data/analysis/YYMMDD-荐股.xlsx   ← 用户据此决策
-     data/hold/YYMMDD.xlsx        ← 持仓基线
+  ▼ data/analysis/YYMMDD-荐股.csv   ← 用户据此决策
+     data/hold/YYMMDD.csv        ← 持仓基线
 ```
 
 **持续运营流程：**
 
 ```
 每日 09:00 / 17:00
-  ├─ 热点追踪：采热搜 → LLM 识别机会 → 受益行业/个股 → data/hot/YYMMDD-HH.xlsx
+  ├─ 热点追踪：采热搜 → LLM 识别机会 → 受益行业/个股 → data/hot/YYMMDD-HH.csv
   └─ 持股分析：重爬重算持仓 → 风险高亮 → 趋势对比 → 操作建议
-        → data/hold/YYMMDD-09.xlsx / -17.xlsx
+        → data/hold/YYMMDD-09.csv / -17.csv
   │
   ▼ 推送（邮件完整 HTML / 微信摘要）
 ```
@@ -317,12 +317,12 @@ alpha-jerry/
 | Agent | 职责 | 工具 | 记忆 | 输出 |
 |---|---|---|---|---|
 | RouterAgent | 意图路由，无法识别回退 ChatAgent | `classify_intent`（LLM+规则正则） | 短期会话 | 路由决策 |
-| DataAgent | 采集全 A 股并落地特征字段 | `fetch_stock_list`/`fetch_financials`/`save_xlsx` | 采集进度 | `data/fin/YYMMDD.xlsx` |
-| ScoringAgent | 否决 + 三维评分 + 权重 + 综合分 | `scoring` 纯函数族 | 评分快照 | `-评分.xlsx` |
-| RatingAgent | 评级 + 公司类型 + 行业分类 + AI 点评 | `rating` 纯函数 + `llm_comment` | 评级历史 | `-评级.xlsx` |
-| ReportAgent | 荐股 Top20 + 持仓表 | `build_top20`/`render_portfolio`/`llm_highlight` | 报告索引 | `data/analysis/荐股.xlsx`、`data/hold/*.xlsx` |
+| DataAgent | 采集全 A 股并落地特征字段 | `fetch_stock_list`/`fetch_financials`/`save_csv` | 采集进度 | `data/fin/YYMMDD.csv` |
+| ScoringAgent | 否决 + 三维评分 + 权重 + 综合分 | `scoring` 纯函数族 | 评分快照 | `-评分.csv` |
+| RatingAgent | 评级 + 公司类型 + 行业分类 + AI 点评 | `rating` 纯函数 + `llm_comment` | 评级历史 | `-评级.csv` |
+| ReportAgent | 荐股 Top20 + 持仓表 | `build_top20`/`render_portfolio`/`llm_highlight` | 报告索引 | `data/analysis/荐股.csv`、`data/hold/*.csv` |
 | HotspotAgent | 采热搜 → LLM 识别 → 受益行业/个股 | `fetch_hot_search`/`llm_identify_opportunity`/`rag_map_industry_to_stocks` | 热点时序 | `data/hot/` |
-| PortfolioAgent | 持仓重算、风险高亮、趋势、操作建议 | `reload_holdings`/`rescore`/`diff_last_score`/`suggest_action` | 持仓变化 | `data/hold/YYMMDD-09.xlsx` 等 |
+| PortfolioAgent | 持仓重算、风险高亮、趋势、操作建议 | `reload_holdings`/`rescore`/`diff_last_score`/`suggest_action` | 持仓变化 | `data/hold/YYMMDD-09.csv` 等 |
 | ChatAgent | 自由对话，调用其他 Agent（受权限约束） | 全部工具 | 长期会话 + RAG | 对话回复 |
 
 ### 7.2 编排要素（满足 C-03）
@@ -343,7 +343,7 @@ alpha-jerry/
 
 ### 8.1 特征工程字段表 `[RIGID]`
 
-采集并落地到 `data/fin/YYMMDD.xlsx`，**列名采用 Tushare 接口真实返回字段名、数据为真实值**（owner 决策，对齐 https://tushare.pro/document/2；偏离原中文字段名约定已记 CHANGELOG）。
+采集并落地到 `data/fin/YYMMDD.csv`，**列名采用 Tushare 接口真实返回字段名、数据为真实值**（owner 决策，对齐 https://tushare.pro/document/2；偏离原中文字段名约定已记 CHANGELOG）。
 
 单一事实来源为代码：`src/schemas/financial.py` 的 `OUTPUT_COLUMNS`（55 列）与 `REQUIREMENT_ALIGNMENT`（原始 55 需求→Tushare 字段对齐表，含真实字段中文翻译 `chinese_name`）。接口注册表见 `src/data/interfaces.py` 的 `TUSHARE_INTERFACES`（记录 `api_name` / `vip_api_name` / `doc_url` / `min_points`）。字段对应表 CSV 见 `docs/field-mapping.csv`，完整字段契约见 `docs/data-contract.md`。
 
@@ -370,7 +370,7 @@ alpha-jerry/
 | 行业毁灭 | 技术路线被颠覆（如胶卷、燃油车零部件） |
 | 诚信问题 | 频繁更换审计机构（3 年换 2 次以上）；大股东质押率 >70%；曾因信披违规被立案 |
 
-**逻辑**：触发任一 → 剔除评级 → 记录到 `data/fin/YYMMDD-否决.xlsx` 供审计。
+**逻辑**：触发任一 → 剔除评级 → 记录到 `data/fin/YYMMDD-否决.csv` 供审计。
 
 ### 8.3 三维评分阈值 `[RIGID]`
 
@@ -455,7 +455,7 @@ $$
 $$
 
 - 保留 1 位小数。
-- 综合分追加到原 xlsx 字段末尾，另存 `data/fin/YYMMDD-评分.xlsx`，保留全部原始字段。
+- 综合分追加到原 csv 字段末尾，另存 `data/fin/YYMMDD-评分.csv`，保留全部原始字段。
 
 ### 8.6 评级映射 `[RIGID]`
 
@@ -466,7 +466,7 @@ $$
 | 5.5-6.9 | 🔄 鸡肋·观察 |
 | <5.5 | ⚠️ 垃圾 |
 
-- 评级字段追加到原 xlsx 末尾，另存 `data/fin/YYMMDD-评级.xlsx`，保留原字段。
+- 评级字段追加到原 csv 末尾，另存 `data/fin/YYMMDD-评级.csv`，保留原字段。
 - **边界单测必覆盖**：8.5 / 7.0 / 5.5 三个临界值归属正确。
 
 ### 8.7 公司类型 `[RIGID]`
@@ -512,8 +512,8 @@ $$
 | 评级 | 文本 | 皇冠明珠/优秀白马/鸡肋·观察/垃圾 |
 | 点评 | 文本 | AI 点评，≤50 字 |
 
-- 荐股：按综合分降序取 Top20，落地 `data/analysis/YYMMDD-荐股.xlsx`。
-- 持仓：用户对话录入（代码+名称），系统生成 `data/hold/YYMMDD.xlsx`，字段同荐股表。
+- 荐股：按综合分降序取 Top20，落地 `data/analysis/YYMMDD-荐股.csv`。
+- 持仓：用户对话录入（代码+名称），系统生成 `data/hold/YYMMDD.csv`，字段同荐股表。
 
 ---
 
@@ -523,7 +523,7 @@ $$
 
 | BR | FR 域 | 需求要点 | 优先级 |
 |---|---|---|---|
-| BR-01/02 | FR-DATA-01~10 | Tushare 单一数据源 + `BaseFetcher` 抽象；全 A 股清单；特征字段落地 `data/fin/YYMMDD.xlsx`；最新报告期三表；低并发续采；缓存增量；限流重试；Tushare 真实字段名+百分比格式（§8.1）；季度/月度更新 | P0 |
+| BR-01/02 | FR-DATA-01~10 | Tushare 单一数据源 + `BaseFetcher` 抽象；全 A 股清单；特征字段落地 `data/fin/YYMMDD.csv`；最新报告期三表；低并发续采；缓存增量；限流重试；Tushare 真实字段名+百分比格式（§8.1）；季度/月度更新 | P0 |
 | BR-03 | FR-SCORE-01 | 一票否决（§8.2）剔除并审计 | P0 |
 | BR-04 | FR-SCORE-02~09 | 三维评分（§8.3）+ 行业权重（§8.4）+ 综合分（§8.5）；纯函数单测；公司类型权重微调 | P0 |
 | BR-05 | FR-RATE-01~04 | 四级评级（§8.6）；边界单测；否决记录审计 | P0 |
@@ -632,9 +632,9 @@ LLM_LOCAL_FALLBACK=false     # 是否启用本地模型兜底
 
 ### 12.3 验收清单（DoD）
 
-- [ ] BRD step1~step4 全流程可一键跑通并产出对应 xlsx。
+- [ ] BRD step1~step4 全流程可一键跑通并产出对应 csv。
 - [ ] 评分/评级纯函数单测覆盖全部阈值边界（8.5/7.0/5.5 等）。
-- [ ] 一票否决剔除公司记录可审计（`-否决.xlsx`）。
+- [ ] 一票否决剔除公司记录可审计（`-否决.csv`）。
 - [ ] 热点/持仓定时任务按 09:00/17:00 触发并推送。
 - [ ] 桌面端 Win/Mac 可安装运行，可对话交互。
 - [ ] 图标为巧克力色荷兰侏儒兔风格。
@@ -652,9 +652,9 @@ LLM_LOCAL_FALLBACK=false     # 是否启用本地模型兜底
 | 里程碑 | 范围 | 验收 |
 |---|---|---|
 | M0 工程骨架 | 目录/AGENTS.md/pyproject/Settings/CI | `uv run pytest` 骨架用例通过 |
-| M1 数据采集 | DataAgent + Tushare 适配 + 字段落地 | 随机 5 股采集成功，xlsx 字段齐全 |
-| M2 评分评级 | 纯函数 + 单测 + 行业权重 + 否决 | 阈值表单测全覆盖；`-评分`/`-评级` xlsx 产出 |
-| M3 报告输出 | 荐股 Top20 + 持仓表 + AI 点评 | `data/analysis/荐股.xlsx` 生成 |
+| M1 数据采集 | DataAgent + Tushare 适配 + 字段落地 | 随机 5 股采集成功，csv 字段齐全 |
+| M2 评分评级 | 纯函数 + 单测 + 行业权重 + 否决 | 阈值表单测全覆盖；`-评分`/`-评级` csv 产出 |
+| M3 报告输出 | 荐股 Top20 + 持仓表 + AI 点评 | `data/analysis/荐股.csv` 生成 |
 | M4 多 Agent 编排 | RouterAgent + ChatAgent + LangGraph + 记忆/RAG | 对话可触发各 Agent |
 | M5 热点+持仓监控+推送 | HotspotAgent + PortfolioAgent + 邮件/微信 | 定时任务与推送链路打通 |
 | M6 桌面端 UI | Electron + React 双端 + 图标 + 打包 | Win/Mac 可安装运行 |

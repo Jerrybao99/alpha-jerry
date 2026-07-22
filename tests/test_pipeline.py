@@ -1,7 +1,5 @@
-"""Step 1.3 单测——cache / format / pipeline，全 mock 不触网络（FR-DATA-05/06）。
-
-覆盖：缓存键/读写/禁用、百分比格式化与输出行、采集编排（成功+缓存命中+失败隔离）、
-失败清单落 xlsx、字段标准化顺序。
+"""Step 1.3 单测。全 mock 验证 cache 键/读写/禁用、format 百分比与输出行、
+pipeline 采集编排（成功+缓存命中+失败隔离）。不触网络。
 """
 
 from __future__ import annotations
@@ -218,14 +216,13 @@ def test_pipeline_write_failures(tmp_path: Path) -> None:
     )
     result = pipe.run()
     out = pipe.write_failures(result.failures, date=_dt.date(2026, 7, 23))
-    assert out.name == "260723-失败.xlsx"
+    assert out.name == "260723-失败.csv"
     assert out.exists()
-    from openpyxl import load_workbook
+    import csv
 
-    wb = load_workbook(out)
-    ws = wb.active
-    rows = list(ws.iter_rows(values_only=True))
-    assert rows[0] == ("ts_code", "name", "error")
+    with out.open(encoding="utf-8-sig") as fh:
+        rows = list(csv.reader(fh))
+    assert rows[0] == ["ts_code", "name", "error"]
     assert rows[1][0] == "000001.SZ"
     assert "boom" in rows[1][2]
 

@@ -1,9 +1,5 @@
-"""生成 docs/field-mapping.csv 字段对应表。
-
-从 src.schemas.financial.REQUIREMENT_ALIGNMENT + SUPPLEMENTARY_FIELDS
-与 src.data.interfaces.TUSHARE_INTERFACES 自动生成 CSV，保证与代码同步。
-
-用法：uv run python scripts/gen_field_mapping.py
+"""生成 docs/field-mapping.csv 字段对应表。从 REQUIREMENT_ALIGNMENT + SUPPLEMENTARY_FIELDS +
+TUSHARE_INTERFACES 自动生成 CSV，保证与代码同步。用法：uv run python scripts/gen_field_mapping.py。
 """
 
 from __future__ import annotations

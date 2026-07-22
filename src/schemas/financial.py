@@ -1,16 +1,6 @@
-"""特征工程字段模型——以 Tushare 真实字段为输出列，对齐官方文档与 brd-1.md §7.8。
-
-设计原则（owner 决策，对齐 dev-guide §8.1）：
-- 采集落地的列全部使用 Tushare 接口真实返回字段名与真实数据，不自造中文字段名、不存计算字段。
-- brd-1.md §7.8 的 55 个"需求字段"作为采购清单，逐一对齐到 Tushare 真实字段：
-  exact 精确对应 / approximate 近似替代 / computed_in_scoring 评分时计算 / unavailable 首版不采集。
-- 财务三表 / 指标 / 预告 / 快报 / 主营构成优先使用 ``_vip`` 后缀接口（5000 积分，按 period 批量取全市场）。
-- 额外补充字段（SUPPLEMENTARY_FIELDS）服务一票否决（§8.2）与三维评分（§8.3），非 55 需求字段。
-- 接口注册表与文档 URL 见 ``src.data.interfaces.TUSHARE_INTERFACES``。
-
-字段来源对齐：https://tushare.pro/document/2
-  stock_basic / income_vip / balancesheet_vip / cashflow_vip / fina_indicator_vip / daily_basic
-  + fina_audit / dividend / pledge_stat（补充字段）
+"""特征工程字段模型。以 Tushare 真实字段名为输出列，定义 StockFeatures/StockInfo 与 OUTPUT_COLUMNS。
+REQUIREMENT_ALIGNMENT 对齐 §8.1 的 55 需求→Tushare 字段，SUPPLEMENTARY_FIELDS 补充一票否决/评分辅助字段。
+字段来源对齐 https://tushare.pro/document/2。
 """
 
 from __future__ import annotations

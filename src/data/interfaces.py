@@ -1,13 +1,6 @@
-"""Tushare 接口注册表——所有 5000 积分可调用接口（优先 vip 高级接口）。
-
-设计原则（owner 决策，对齐 brd-1.md §7.8 / dev-guide §8.1）：
-- 财务三表 / 指标 / 预告 / 快报 / 主营构成优先使用 ``_vip`` 后缀接口
- （5000 积分，按报告期 ``period`` 批量取全市场，避免逐股调用）。
-- 其余接口使用常规接口（≤5000 积分可调取，5000 积分频次更高或无总量限制）。
-- 每个接口记录 ``api_name`` / ``vip_api_name`` / ``doc_url`` / ``min_points`` / ``description``。
-- 业务代码通过本注册表获取接口名与文档链接，禁止硬编码（NFR-07）。
-
-接口文档来源：https://tushare.pro/document/2
+"""Tushare 接口注册表。登记 20 个 5000 积分可调用接口（财务三表/指标/预告/快报/主营构成优先 vip），
+每个接口记录 api_name/vip_api_name/doc_url/min_points/description。业务代码通过
+get_vip_api_name()/get_doc_url() 取名与链接，禁止硬编码。文档来源 https://tushare.pro/document/2。
 """
 
 from __future__ import annotations

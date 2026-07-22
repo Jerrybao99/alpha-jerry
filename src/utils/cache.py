@@ -1,7 +1,5 @@
-"""采集缓存（FR-DATA-06）——按 ts_code + period 缓存 StockFeatures，避免同季重复调接口。
-
-缓存键 = ts_code + period（period 为 None 时记 ``latest``）。本地 JSON 文件存储，
-符合 local-first（NFR-01）。缓存目录由 Settings 派生（``data_dir/cache``），不硬编码。
+"""采集缓存。按 ts_code + period 缓存 StockFeatures，避免同季重复调接口。
+本地 JSON 文件存储，缓存目录由 Settings 派生，不硬编码。
 """
 
 from __future__ import annotations

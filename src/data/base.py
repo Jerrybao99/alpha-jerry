@@ -1,10 +1,5 @@
-"""数据源抽象接口（dev-guide §6.3 原则 3：数据源单一真源 + Fallback）。
-
-先定义"接口"再写"实现"：TushareFetcher（Step 1.2）及其他未来数据源
-（同花顺 / akshare ...）均实现 BaseFetcher；业务代码（pipeline / DataAgent）
-只依赖本抽象，换源不改业务代码。
-
-字段溯源与 Tushare 真实字段对齐，见 src.schemas.financial.TUSHARE_FIELD_MAP。
+"""数据源抽象接口。定义 BaseFetcher，TushareFetcher 及未来数据源均实现之；
+业务代码只依赖本抽象，换源不改业务代码。主键统一用 ts_code。
 """
 
 from __future__ import annotations

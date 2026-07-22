@@ -1,11 +1,4 @@
-"""字段标准化输出辅助（§8.1）。
-
-- 百分比字段（PERCENT_FIELDS）加 ``%`` 后缀保留两位小数。
-- 其余字段保持原始值（None 归一化为 None；大数的科学计数法显示由 xlsx_writer 写盘时处理）。
-- ``to_output_row``：按 ALL_OUTPUT_COLUMNS 顺序提取，供写盘列对齐。
-
-纯函数，便于单测。
-"""
+"""字段标准化输出辅助。百分比字段加 % 两位小数，to_output_row 按 ALL_OUTPUT_COLUMNS 顺序提取供写盘列对齐。纯函数，便于单测。"""
 
 from __future__ import annotations
 

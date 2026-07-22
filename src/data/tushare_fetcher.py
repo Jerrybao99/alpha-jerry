@@ -1,14 +1,5 @@
-"""Tushare 数据源适配器（Step 1.2）。
-
-实现 BaseFetcher：
-- 限流器（滑动窗口，每分钟调用上限 = Settings.tushare_rate_limit，FR-DATA-06）。
-- 指数退避重试（1s → 2s → 4s，FR-DATA-07）。
-- 财务三表/指标/预告/快报/主营构成优先用 ``_vip`` 高级接口（通过 get_vip_api_name 取名），
-  其余接口走常规接口；接口名与文档 URL 全部来自 TUSHARE_INTERFACES，禁止硬编码（NFR-07）。
-- token 从 Settings.tushare_token 读取，经 ts.set_token() / ts.pro_api() 注入 SDK；
-  token 为空时抛 TushareTokenError 提示用户配置 .env（doc_id=40/131）。
-
-批量按 period 取全市场的编排由 Step 1.3 pipeline 利用；本适配器提供单股采集能力。
+"""Tushare 数据源适配器。实现 BaseFetcher，含限流器（每分钟调用上限）与指数退避重试（1s/2s/4s）。
+财务四表等优先用 _vip 接口；token 从 Settings 读取注入 SDK，空则报错提示配置 .env。
 """
 
 from __future__ import annotations
@@ -143,11 +134,11 @@ class TushareFetcher(BaseFetcher):
         records = self._call("stock_basic", STOCK_BASIC_FIELDS, list_status="L")
         return [
             StockInfo(
-                ts_code=r.get("ts_code", ""),
-                symbol=r.get("symbol", ""),
-                name=r.get("name", ""),
-                industry=r.get("industry", ""),
-                list_date=r.get("list_date"),
+                ts_code=self._str(r.get("ts_code")),
+                symbol=self._str(r.get("symbol")),
+                name=self._str(r.get("name")),
+                industry=self._str(r.get("industry")),
+                list_date=self._opt(r.get("list_date")),
             )
             for r in records
         ]
@@ -212,3 +203,19 @@ class TushareFetcher(BaseFetcher):
                     v = None
                 out[f] = v
         return out
+
+    @staticmethod
+    def _str(v: Any) -> str:
+        """字符串字段归一化：None/NaN → 空串。"""
+        if v is None:
+            return ""
+        if isinstance(v, float) and math.isnan(v):
+            return ""
+        return str(v)
+
+    @staticmethod
+    def _opt(v: Any) -> str | None:
+        """可选字符串字段归一化：NaN → None。"""
+        if isinstance(v, float) and math.isnan(v):
+            return None
+        return v

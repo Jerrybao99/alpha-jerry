@@ -1,11 +1,5 @@
-"""全局配置入口。
-
-职责：
-1. 用 pydantic-settings 集中管理所有配置（路径/超时/模型/密钥）。
-2. 从 .env 加载，业务代码通过 get_settings() 读取单例。
-3. 禁止硬编码（dev-guide §6.3 架构原则 2、NFR-07）。
-
-配置项对齐 docs/dev-guide.md §10.2。
+"""全局配置入口。用 pydantic-settings 集中管理路径/超时/模型/密钥等配置，从 ``.env`` 加载，
+业务代码通过 ``get_settings()`` 读取单例。配置项对齐 docs/dev-guide.md §10.2，禁止硬编码。
 """
 
 from __future__ import annotations

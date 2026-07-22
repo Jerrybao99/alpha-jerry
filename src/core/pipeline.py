@@ -1,17 +1,10 @@
-"""采集主流程编排（Step 1.3，FR-DATA-05/06）。
-
-读全量清单 → 低并发线程池采集（concurrency 来自 Settings）→ 缓存原始响应 →
-字段标准化为 StockFeatures；单股失败隔离，记入失败清单并落 ``data/fin/YYMMDD-失败.xlsx``。
-
-设计要点：
-- 只依赖 ``BaseFetcher`` 抽象，换数据源不改本编排（§6.3 原则 3）。
-- 线程池并发数 = ``Settings.concurrency``，避免一次性打满限流（FR-DATA-06）。
-- 缓存键 = ts_code + period，同季重跑不重复调接口（FR-DATA-06）。
-- 单股异常被捕获入失败清单，不拖垮整体（FR-DATA-05 / NFR-04）。
+"""采集主流程编排。读全量清单 → 低并发线程池采集 → 缓存原始响应 → 字段标准化为 StockFeatures；
+单股失败隔离并落 ``data/fin/YYMMDD-失败.csv``。只依赖 BaseFetcher 抽象，换数据源不改本编排。
 """
 
 from __future__ import annotations
 
+import csv
 import datetime as _dt
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -19,11 +12,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from openpyxl import Workbook
-
 from src.config import Settings, get_settings
 from src.data.base import BaseFetcher
-from src.schemas.financial import StockFeatures
+from src.schemas.financial import StockFeatures, StockInfo
 from src.utils.cache import Cache
 from src.utils.format import to_output_row
 
@@ -85,6 +76,7 @@ class CollectionPipeline:
             stocks = [s for s in stocks if s.ts_code in wanted]
         result = CollectionResult(total=len(stocks))
         name_map = {s.ts_code: s.name for s in stocks}
+        info_map = {s.ts_code: s for s in stocks}
 
         futures = {self._executor.submit(self._fetch_one, s.ts_code, period): s.ts_code for s in stocks}
         for fut in futures:
@@ -98,10 +90,25 @@ class CollectionPipeline:
             if hit:
                 result.cached_hits += 1
             if features is not None:
+                self._enrich_with_stock_info(features, info_map.get(ts_code))
                 result.successes.append(features)
             else:
                 result.failures.append(Failure(ts_code, name_map.get(ts_code, ""), "无数据"))
         return result
+
+    @staticmethod
+    def _enrich_with_stock_info(features: StockFeatures, info: StockInfo | None) -> None:
+        """回填 stock_basic 字段（symbol/name/industry/list_date）——fetch_financials 只采财务接口。"""
+        if info is None:
+            return
+        if not features.symbol:
+            features.symbol = info.symbol
+        if not features.name:
+            features.name = info.name
+        if not features.industry:
+            features.industry = info.industry
+        if features.list_date is None:
+            features.list_date = info.list_date
 
     def _fetch_one(self, ts_code: str, period: str | None) -> tuple[StockFeatures | None, bool]:
         """采集单股：先查缓存，未命中再调接口并回写缓存。返回 (特征, 是否命中缓存)。"""
@@ -119,16 +126,15 @@ class CollectionPipeline:
         return [to_output_row(f) for f in result.successes]
 
     def write_failures(self, failures: list[Failure], date: _dt.date | None = None) -> Path:
-        """失败清单落 ``data/fin/YYMMDD-失败.xlsx``（审计可追溯，FR-DATA-05）。"""
+        """失败清单落 ``data/fin/YYMMDD-失败.csv``（审计可追溯，FR-DATA-05）。"""
         date = date or _dt.date.today()
-        out = self.settings.data_path("fin") / f"{date.strftime('%y%m%d')}-失败.xlsx"
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "失败"
-        ws.append(["ts_code", "name", "error"])
-        for f in failures:
-            ws.append([f.ts_code, f.name, f.error])
-        wb.save(out)
+        out = self.settings.data_path("fin") / f"{date.strftime('%y%m%d')}-失败.csv"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with out.open("w", newline="", encoding="utf-8-sig") as fh:
+            writer = csv.writer(fh, lineterminator="\n")
+            writer.writerow(["ts_code", "name", "error"])
+            for f in failures:
+                writer.writerow([f.ts_code, f.name, f.error])
         return out
 
     def close(self) -> None:
