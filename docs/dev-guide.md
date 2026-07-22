@@ -343,19 +343,20 @@ alpha-jerry/
 
 ### 8.1 特征工程字段表 `[RIGID]`
 
-采集并落地到 `data/fin/YYMMDD.xlsx`，列名中文：
+采集并落地到 `data/fin/YYMMDD.xlsx`，**列名采用 Tushare 接口真实返回字段名、数据为真实值**（owner 决策，对齐 https://tushare.pro/document/2；偏离原中文字段名约定已记 CHANGELOG）。
 
-```
-股票代码、股票名称、行业属性、上市日期、财报发布日期、财报所属期间、
-主营收入、主营利润、营业利润、投资收益、营业外收支、利润总额、净利润、
-未分配利润、总资产、流动资产、固定资产、无形资产、总负债、流动负债、
-长期负债、股东权益、资本公积金、经营现金流量、投资现金流量、筹资现金流量、
-现金增加额、每股收益、每股净资产、净资产收益率、每股经营现金、每股公积金、
-每股未分配利润、股东权益比、净利润同比增长率、主营收入同比增长率、销售毛利率、
-调整后每股净资产、总股本、无限售股合计、A股数量、B股数量、限售股合计、
-国家持股数量、国有法人持股、资产负债率、流动比率、速动比率、权益乘数、
-每股经营现金流/每股收益、净利润占营业利润比、主营利润率、净利率、投资收益占比、现金流量比率
-```
+单一事实来源为代码：`src/schemas/financial.py` 的 `OUTPUT_COLUMNS`（46 列）与 `REQUIREMENT_ALIGNMENT`（原始 55 需求→Tushare 字段对齐表）。字段来源接口：`stock_basic` / `income` / `balancesheet` / `cashflow` / `fina_indicator` / `daily_basic`。
+
+原始 55 个需求字段对齐结果：
+
+| 对齐 | 数量 | 含义 |
+|---|---|---|
+| exact | 40 | Tushare 有精确字段，直接采集 |
+| approximate | 4 | 无精确字段取最近似：主营收入→`revenue`、主营利润→`operate_profit`、营业外收支→`non_oper_income`/`non_oper_exp`、无限售股合计→`float_share` |
+| computed_in_scoring | 6 | 不落盘，由 M2 评分纯函数基于真实字段计算：股东权益比、限售股合计、每股经营现金流/每股收益、净利润占营业利润比、主营利润率、投资收益占比 |
+| unavailable | 5 | Tushare 无且无近似，首版不采集：调整后每股净资产、A股数量、B股数量、国家持股数量、国有法人持股 |
+
+各接口请求字段见 `STOCK_BASIC_FIELDS` / `INCOME_FIELDS` / `BALANCESHEET_FIELDS` / `CASHFLOW_FIELDS` / `FINA_INDICATOR_FIELDS` / `DAILY_BASIC_FIELDS`。百分比类字段（`netprofit_yoy`/`or_yoy`/`grossprofit_margin`/`debt_to_assets`/`netprofit_margin`）以百分数数值返回，写盘加 `%` 后缀保留两位小数。
 
 ### 8.2 一票否决规则 `[RIGID]`
 
@@ -518,7 +519,7 @@ $$
 
 | BR | FR 域 | 需求要点 | 优先级 |
 |---|---|---|---|
-| BR-01/02 | FR-DATA-01~10 | Tushare 单一数据源 + `BaseFetcher` 抽象；全 A 股清单；特征字段落地 `data/fin/YYMMDD.xlsx`；最新报告期三表；低并发续采；缓存增量；限流重试；中文列名+百分比格式；季度/月度更新 | P0 |
+| BR-01/02 | FR-DATA-01~10 | Tushare 单一数据源 + `BaseFetcher` 抽象；全 A 股清单；特征字段落地 `data/fin/YYMMDD.xlsx`；最新报告期三表；低并发续采；缓存增量；限流重试；Tushare 真实字段名+百分比格式（§8.1）；季度/月度更新 | P0 |
 | BR-03 | FR-SCORE-01 | 一票否决（§8.2）剔除并审计 | P0 |
 | BR-04 | FR-SCORE-02~09 | 三维评分（§8.3）+ 行业权重（§8.4）+ 综合分（§8.5）；纯函数单测；公司类型权重微调 | P0 |
 | BR-05 | FR-RATE-01~04 | 四级评级（§8.6）；边界单测；否决记录审计 | P0 |

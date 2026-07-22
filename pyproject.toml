@@ -5,10 +5,12 @@ description = "A 股基本面分析 AI Native 工具集（多 Agent 编排 + RAG
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "lxml>=6.1.1",
     "openpyxl>=3.1.5",
     "pandas>=3.0.3",
     "pydantic-settings>=2.14.2",
     "python-dotenv>=1.2.2",
+    "tushare>=1.4.29",
 ]
 
 [dependency-groups]

@@ -29,28 +29,19 @@ date: 2026-07-21
 - **涉及文件**：`.github/workflows/ci.yml`、`tests/test_skeleton.py`
 - [x] 加 GitHub Actions workflow（ruff + pytest），写一个最简单的骨架测试让 CI 有东西可跑。
 
-  ```bash
-  
-  git commit -m "ci: add ruff and pytest gates"
-  ```
-
 ## M1 数据采集
 
 **目标**：能从 Tushare 采集 A 股财务数据并落地为 `data/fin/YYMMDD.xlsx`。
-**验收**：随机 5 股采集成功，xlsx 字段齐全（dev-log 已定冒烟样本）。
 **需求覆盖**：BR-01/02 · FR-DATA-01~10 · FR-UPDATE-02/03（季度基本面/月度资金面更新）。
 
 ### Step 1.1 数据源抽象与字段模型
 
-- [ ] 已完成此步（断点提交后打勾）
-
-- **做什么**：在 `src/data/base.py` 定义 `BaseFetcher` 抽象接口；在 `src/schemas/` 用 Pydantic 定义特征工程字段模型（dev-guide §8.1）。
 - **涉及文件**：`src/data/base.py`、`src/data/__init__.py`、`src/schemas/financial.py`
-- **学习点**：先定义"接口"再写"实现"，是面向对象的核心习惯。这样未来换数据源（如同花顺）时，只需新写一个 fetcher，不用改业务代码（dev-guide §6.3 原则 3）。
-- **验证**：`uv run pytest` 仍通过（此步无新测试，确保没破坏既有）。
+- [x] 在 `src/data/base.py` 定义 `BaseFetcher` 抽象接口（主键 `ts_code`）；在 `src/schemas/financial.py` 用 Pydantic 定义特征工程字段模型——字段名即 Tushare 真实字段名（`OUTPUT_COLUMNS` 46 列）+ `REQUIREMENT_ALIGNMENT`（§8.1 的 55 需求→Tushare 字段对齐表）。
+
 - **断点提交**：
   ```bash
-  git add src/data/base.py src/data/__init__.py src/schemas/financial.py
+   src/data/base.py src/data/__init__.py src/schemas/financial.py
   git commit -m "feat(data): add base fetcher interface and field schemas"
   ```
 
@@ -89,7 +80,7 @@ date: 2026-07-21
 
 - [ ] 已完成此步（断点提交后打勾）
 
-- **做什么**：写脚本随机选 5 股真实采集，落地 `data/fin/YYMMDD.xlsx`；字段格式化（中文列名、百分比两位小数带后缀、替换科学计数法——dev-log 已定）。
+- **做什么**：写脚本随机选 5 股真实采集，落地 `data/fin/YYMMDD.xlsx`；字段格式化（Tushare 真实字段名列头、百分比两位小数带后缀、替换科学计数法——§8.1）。
 - **涉及文件**：`scripts/smoke_collect.py`、`src/reports/xlsx_writer.py`
 - **关键命令**：
   ```bash
