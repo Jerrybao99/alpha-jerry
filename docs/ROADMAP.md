@@ -4,52 +4,25 @@ status: active
 version: 1.1.0
 date: 2026-07-21
 依据: [dev-guide.md](./dev-guide.md) §9 功能需求清单 + §13 里程碑 + §12 验证门禁
-更新说明: v1.1.0 依据最新 dev-guide 同步——新增 §0.5 需求追溯、每里程碑标注覆盖 BR/FR（§9）、修正路由清单（§11.1）、补 data 子目录运行时创建说明
 ---
 
 # alpha-jerry 开发工程路线图（ROADMAP）
 
----
-
-### 0.3 需求追溯（对应 dev-guide §9）
-
-每个里程碑都会标注「**需求覆盖**」，列出它实现的 `BR-*`（业务需求）与 `FR-*`（功能需求）编号，编号定义见 [dev-guide.md §9](./dev-guide.md#9-功能需求清单可追溯)。这样每一步都能回答"我在交付哪条需求"，便于验收与回溯。
-
----
-
 ## M0 工程骨架
-
-**目标**：搭好可演进的目录骨架、依赖管理、配置入口与 CI，让后续每一步都有地方落代码。
-**验收**：`uv run pytest` 通过骨架用例。
-**需求覆盖**：工程基线，支撑全部 FR/NFR（dev-guide §9）；落地 `AGENTS.md`、`Settings`、CI 门禁（§12.1）。
 
 ### Step 0.1 初始化仓库与基础文件
 
-- [x] 已完成此步（断点提交后打勾）
-
-- **做什么**：在项目根目录初始化 git，创建 `.gitignore`、`README.md`、`CHANGELOG.md`。
+- [x] 在项目根目录初始化 git，创建 `.gitignore`、`README.md`、`CHANGELOG.md`。
 
 ### Step 0.2 依赖管理与工具配置
 
-- [x] 已完成此步（断点提交后打勾）
-
-- **做什么**：用 `uv` 初始化 Python 项目，配置 `pyproject.toml`，加入 ruff（格式/检查）与 pytest（测试）。
+- [x] 用 `uv` 初始化 Python 项目，配置 `pyproject.toml`，加入 ruff（格式/检查）与 pytest（测试）。
 - **涉及文件**：`pyproject.toml`、`uv.lock`、`.env.example`
 
 ### Step 0.3 目录骨架与配置入口
 
-- [ ] 已完成此步（断点提交后打勾）
-
-- **做什么**：按 dev-guide §5 创建源码目录结构；写 `AGENTS.md`（项目级 AI 行为规范）；写 `src/config.py` 的 `Settings` 类雏形与 `.env.example`；建 `main.py` 作为运行入口（dev-guide §10.3）。
+- [x] 按 dev-guide §5 创建源码目录结构；写 `AGENTS.md`（项目级 AI 行为规范）；写 `src/config.py` 的 `Settings` 类雏形与 `.env.example`；建 `main.py` 作为运行入口（dev-guide §10.3）。
 - **涉及文件**：`AGENTS.md`、`src/config.py`、`src/__init__.py`、各子目录 `__init__.py`、`main.py`、`.env.example`
-- **关于 `data/` 子目录**：`fin/analysis/hold/hot/monitor/feedback/rag` 这些数据子目录**不手动建、不入库**，由代码运行时 `os.makedirs(..., exist_ok=True)` 自动创建（`data/` 已在 `.gitignore`）。这样目录结构跟随数据生命周期，不污染版本库。
-- **学习点**：`Settings` 类集中管理所有配置（路径/超时/密钥），业务代码通过它读参数，禁止硬编码（dev-guide §6.3 架构原则 2）。`.env.example` 是配置样板，新增配置必须同步它（§12.1 配置同步门禁）。
-- **验证**：`uv run python -c "from src.config import Settings; print(Settings())"` 不报错。
-- **断点提交**：
-  ```bash
-  git add AGENTS.md main.py src/ api/ apps/ scripts/ tests/ integrated_tests/ manifests/
-  git commit -m "feat: scaffold project structure and settings"
-  ```
 
 ### Step 0.4 CI 门禁与第一个骨架测试
 
@@ -74,8 +47,6 @@ date: 2026-07-21
   git add .github/ tests/test_skeleton.py
   git commit -m "ci: add ruff and pytest gates"
   ```
-
-> 🎯 **M0 验收**：`uv run pytest` 通过；`git log` 有 4 个干净提交。**直接推送 main**（断点提交 + push）。
 
 ---
 

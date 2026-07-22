@@ -11,15 +11,15 @@
 - [ ] 高速采集全部 A 股市场数据，文件格式，缓存和性能搭配策略
 - [ ] tushare 付费报销
 - [ ] 研究 ROADMAP 转移
-- [ ] git 流程规范合并
-- [ ] ROADMAP 生成规范总结
 
 ### 总结
 
-
+- 数据子目录不手动建、不入库，由代码运行时自动创建，这样目录结构跟随数据生命周期，不污染版本库
 
 ## 待定
 
+- [ ] 基于素材提炼各主要文件规范
+- [ ] 搞懂架构的巧思和意义，为什么这么做
 - [ ] 知识产权保护
 - [ ] 法律风险
 - [ ] 评审：昂哥、果哥、郑哥
@@ -32,15 +32,3 @@
 - [RAG 公众号 * 2](https://mp.weixin.qq.com/s/t20kNKfMgdnUmUsD603p7g)
 - [网页](https://wikimind.top/)
 - [界面](https://quanttide.github.io/qtcloud-devops/)
-
-```markdown
-你好，你是一个资深的软件架构师和 AI Native 开发者，我是一个程序开发小白，这是我的[@brd.md](file:///C:/Users/Administrator/Downloads/GitCode/alpha-jerry/docs/brd.md) 文档，请根据这个文档，结合  
-1. 工程规范文档：
-2. 工程规范仓库：
-3. 架构范例：
-4. 功能实现范例：
-5. 项目工程规范严格参考上述工程规范文档和工程规范仓库架构内容
-6. 预期功能的实现优先参考功能实现范例
-7. Agent 架构参考架构范例和功能实现范例
-给我生成一个专业且规范的`prd.md`于本项目 docs 文件夹中  
-```
