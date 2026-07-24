@@ -24,7 +24,7 @@ date: 2026-07-23
 ### Step 0-2 依赖管理与工具配置
 
 - 涉及文件：`pyproject.toml`、`uv.lock`、`.env.example`
-- [x] 操作：用 `uv` 初始化 Python 项目，配置 `pyproject.toml`，加入 ruff（格式/检查）与 pytest（测试）。
+- [x] 操作：用 `uv` 初始化 Python 项目，配置 `pyproject.toml`（含 `[build-system]` hatchling 构建，使 `uv run python scripts/*.py` 无需设 `PYTHONPATH`），加入 ruff（格式/检查）与 pytest（测试）。
 - [x] 测试/验收：`uv sync` 成功，`uv run ruff check .` 无警告。
 
 ### Step 0-3 目录骨架与配置入口
@@ -49,10 +49,10 @@ date: 2026-07-23
 
 ### Step 1-1 数据源抽象与字段模型
 
-- 涉及文件：`src/data/base.py`、`src/data/__init__.py`、`src/data/interfaces.py`、`src/schemas/financial.py`、`tests/test_schemas.py`、`docs/data-contract.md`、`docs/field-mapping.csv`、`scripts/gen_field_mapping.py`
+- 涉及文件：`src/data/base.py`、`src/data/__init__.py`、`src/data/interfaces.py`、`src/schemas/financial.py`、`tests/test_schemas.py`、`docs/field-mapping.csv`、`scripts/gen_field_mapping.py`
 - 实现 BR-01
 - 实现 FR-DATA-01、FR-DATA-08
-- [x] 操作：在 `src/data/base.py` 定义 `BaseFetcher` 抽象接口（主键 `ts_code`）；在 `src/data/interfaces.py` 建立 `TUSHARE_INTERFACES` 接口注册表（20 个 5000 积分可调用接口，优先 vip 高级接口，含文档 URL）；在 `src/schemas/financial.py` 用 Pydantic 定义特征工程字段模型——字段名即 Tushare 真实字段名（`OUTPUT_COLUMNS` 55 列 + `SUPPLEMENTARY_COLUMNS` 5 列）+ `REQUIREMENT_ALIGNMENT`（§8.1 的 55 需求→Tushare 字段对齐表，含 `chinese_name` 中文翻译）+ `SUPPLEMENTARY_FIELDS`（13 个一票否决/评分辅助字段）。字段对应表 CSV 见 `docs/field-mapping.csv`，完整字段契约见 `docs/data-contract.md`。
+- [x] 操作：在 `src/data/base.py` 定义 `BaseFetcher` 抽象接口（主键 `ts_code`）；在 `src/data/interfaces.py` 建立 `TUSHARE_INTERFACES` 接口注册表（20 个 5000 积分可调用接口，优先 vip 高级接口，含文档 URL）；在 `src/schemas/financial.py` 用 Pydantic 定义特征工程字段模型——字段名即 Tushare 真实字段名（`OUTPUT_COLUMNS` 44 列，按财务阅读习惯分组排列）+ `REQUIREMENT_ALIGNMENT`（§8.1 的 53 需求→Tushare 字段对齐表，含 `chinese_name` 中文翻译）+ `SUPPLEMENTARY_FIELDS`（3 个：money_cap / free_cashflow / inv_turn）。字段对应表 CSV 见 `docs/field-mapping.csv`，完整字段契约见 dev-guide §8.1。
 - [x] 测试/验收：`uv run pytest tests/test_schemas.py` 通过。
 
 ### Step 1-2 Tushare 适配器与限流重试
@@ -60,7 +60,7 @@ date: 2026-07-23
 - 涉及文件：`src/data/tushare_fetcher.py`、`.env`（用户填入 `TUSHARE_TOKEN`）、`tests/test_tushare_fetcher.py`
 - 实现 BR-01
 - 实现 FR-DATA-03、FR-DATA-04、FR-DATA-07
-- [x] 操作：实现 `src/data/tushare_fetcher.py`，含限流器（每分钟调用上限）与指数退避重试（FR-DATA-07）。财务三表/指标/预告/快报/主营构成优先调用 `TUSHARE_INTERFACES` 中的 `_vip` 后缀接口（按 `period` 批量取全市场），其余接口调用常规接口。通过 `get_vip_api_name()` 获取实际接口名，`get_doc_url()` 获取文档链接。初始化时从 `Settings.tushare_token` 读取 token，通过 `ts.set_token()` 或 `ts.pro_api(token)` 注入 SDK（doc_id=40/131）；token 为空时抛出明确错误提示用户配置 `.env`。
+- [x] 操作：实现 `src/data/tushare_fetcher.py`，含限流器（每分钟调用上限）与指数退避重试（FR-DATA-07）。财务三表/指标/预告/快报/主营构成优先调用 `TUSHARE_INTERFACES` 中的 `_vip` 后缀接口（按 `period` 批量取全市场），其余接口调用常规接口。通过 `get_vip_api_name()` 获取实际接口名，`get_doc_url()` 获取文档链接。初始化时从 `Settings.tushare_token` 读取 token，通过 `ts.set_token()` 或 `ts.pro_api(token)` 注入 SDK；token 为空时抛出明确错误提示用户配置 `.env`。`fetch_financials` 调用 4 个 vip 接口（income / balancesheet / cashflow / fina_indicator），锁定 `end_date` 为 income 报告期，其余接口按各自 `end_date` 选最新但不覆盖该字段。
 - [x] 测试/验收：`uv run pytest tests/test_tushare_fetcher.py`（mock 网络）通过；限流/重试/token 缺失报错均覆盖。
 
 ### Step 1-3 采集编排、缓存与失败隔离
@@ -69,31 +69,24 @@ date: 2026-07-23
 - 实现 BR-02
 - 实现 FR-DATA-05、FR-DATA-06
 - 学习点：**低并发线程池**（A 股 5000+ 只，不能一次性全请求，用线程池控制并发数如 4）；**缓存键 = 股票代码 + 报告期**（同季重跑不重复调接口，省积分）；**失败隔离**（一只出错不能拖垮整体，记下来后续采）。
-- [x] 操作：在 `src/core/pipeline.py` 写采集主流程——读全量清单 → 低并发线程池采集 → 缓存原始响应 → 字段标准化；单股失败入 `data/fin/YYMMDD-失败.csv`。
+- [x] 操作：在 `src/core/pipeline.py` 写采集主流程——读全量清单 → 低并发线程池采集 → 缓存原始响应 → 字段标准化；单股失败入 `data/fin/YYMMDD-失败.csv`。`Cache` 增 `ttl_seconds`，仅对 `period=None`（"最新"）条目按文件 mtime 判过期，防新报告期已披露而缓存陈旧；`Settings.cache_ttl_hours`（默认 24h）控制。
 - [x] 测试/验收：`uv run pytest tests/test_pipeline.py`（mock 数据源）通过。
 
 ### Step 1-4 随机 5 股冒烟测试与 csv 落地
 
-- 涉及文件：`scripts/smoke_collect.py`、`src/reports/csv_writer.py`、`integrated_tests/test_smoke_collect.py`
+- 涉及文件：`scripts/smoke_collect.py`、`src/reports/csv_writer.py`、`integrated_tests/test_smoke_collect.py`、`src/utils/period.py`、`tests/test_period.py`、`scripts/verify_latest.py`、`integrated_tests/test_latest_period.py`、`src/rating/industry.py`
 - 实现 BR-02
 - 实现 FR-DATA-09、FR-DATA-10
-- [ ] 操作：
-  - [ ] 写脚本随机选 5 股真实采集
-  - [ ] 采用最新报告期的数据
-  - [ ] csv 字段为真实字段名，翻译为准确中文，增强可读性
-  - [ ] csv 字段单元格长度同字段值以及字段名长度对齐，不要我在 csv 中手动调整
-  - [ ] csv 中所有涉及到百分比的字段都有百分号后缀，保留两位小数
-  - [ ] csv 中字段数据替换科学计数法，用汉字表达数量级，保留两位小数
-  - [ ] 单列一个 csv 列出采用的：接口、字段、字段对应中文、该接口/字段对应的文档 URL，形如 `YYMMDD-数据来源.csv`
-  - [ ] 生成的 csv 在 data 的 test 文件夹，形如 `YYMMDD.csv`
-- [ ] 测试/验收：`uv run python scripts/smoke_collect.py --sample 5`；打开生成的 csv 人工确认。
-- 断点提交：
-  ```bash
-  git add scripts/smoke_collect.py src/reports/csv_writer.py integrated_tests/test_smoke_collect.py
-  git commit -m "test(data): 随机5股冒烟测试与csv落地"
-  ```
-
-> 🎯 **M1 验收**：5 股冒烟通过，csv 字段对齐 dev-guide §8.1。
+- [x] 操作：
+  - [x] 写脚本随机选 5 股真实采集
+  - [x] 所属行业列构建策略更新：通过 `index_member_all` 接口按 ts_code 查询申万二级行业，映射到五大类（周期资源/大消费/证券金融/科技制造/公用事业基建），缓存到 `data/cache/sw_industry.csv`。纯映射见 `src/rating/industry.py`（~130 个 SW L2 行业→5 大类，含罗马数字后缀剥离）。数据链：`ts_code → index_member_all(ts_code, is_new='Y') → l2_name → sw_l2_to_category() → 5大类`。仅在采集范围内按需查询 API，增量写缓存
+  - [x] 采用最新报告期的数据（`end_date` 锁定 income 报告期 + 缓存 TTL + `scripts/verify_latest.py` 交叉校验）
+  - [x] csv 字段为真实字段名，翻译为准确中文，增强可读性
+  - [x] csv 中所有字段在数值中放弃科学计数法，匹配合适的汉字单位，按数据来源 CSV 中记录的单位逐字段追加后缀，并保留两位小数
+  - [x] 单列一个 csv 列出采用的：接口、字段、字段对应中文、该接口/字段对应的文档 URL，形如 `YYMMDD-数据来源.csv`
+  - [x] 生成的 csv 在 data 的 test 文件夹，形如 `YYMMDD.csv`
+  - [x] 集成测试代码对齐`scripts/smoke_collect.py`、`src/reports/csv_writer.py`、`ROADMAP.md`、`dev-guide.md`
+- [x] 测试/验收：`uv run python scripts/smoke_collect.py --sample 5`；`uv run python scripts/verify_latest.py`（交叉校验 end_date/trade_date 为 Tushare 最新）；打开生成的 csv 人工确认。
 
 ---
 
@@ -198,16 +191,16 @@ date: 2026-07-23
 
 ### Step 3-3 字段契约与 Prompt 文档
 
-- 涉及文件：`docs/data-contract.md`、`docs/prompt-library.md`
+- 涉及文件：`docs/dev-guide.md`（§8.1 字段契约）、`docs/prompt-library.md`
 - 实现 BR-06
 - 实现 FR-REPORT-07
 - 学习点：文档与代码同步是工程基本功（NFR-10）。字段口径写不清，下游（包括你自己三个月后）会反复踩坑。
-- [ ] 操作：补 `docs/data-contract.md`（字段计算口径）与 `docs/prompt-library.md`（亮点/点评 Prompt 模板）。
+- [x] 操作：字段计算口径已合并入 `docs/dev-guide.md` §8.1，无需单独的 `data-contract.md`；待补 `docs/prompt-library.md`（亮点/点评 Prompt 模板）。
 - [ ] 测试/验收：人工核对字段口径与代码一致。
 - 断点提交：
   ```bash
-  git add docs/data-contract.md docs/prompt-library.md
-  git commit -m "docs: 字段契约与Prompt文档"
+  git add docs/prompt-library.md
+  git commit -m "docs: Prompt文档"
   ```
 
 > 🎯 **M3 验收**：step1~step4 全流程一键跑通并产出 csv（dev-guide §12.3 DoD 第 1 条）。

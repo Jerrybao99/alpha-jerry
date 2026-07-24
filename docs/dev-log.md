@@ -10,7 +10,10 @@
 
 ## 待定
 
-- [ ] 高速采集全部 A 股市场数据，文件格式，缓存和性能搭配策略
+
+- [ ] 低性能电脑下，高速采集全部 A 股市场数据，文件格式，缓存和性能搭配策略
+- [ ] 总结精华和设计巧思
+- [ ] 大数据下怎么验证数据普遍可靠？
 - [ ] 基于素材提炼各主要文件规范
 - [ ] 搞懂架构的巧思和意义，为什么这么做
 - [ ] 知识产权保护
@@ -26,3 +29,4 @@
 - [网页](https://wikimind.top/)
 - [界面](https://quanttide.github.io/qtcloud-devops/)
 - https://tushare.pro/document/2
+- https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web#/cpbd

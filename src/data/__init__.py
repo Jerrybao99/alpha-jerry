@@ -4,8 +4,18 @@
 """
 
 from src.data.base import BaseFetcher
-from src.data.interfaces import TUSHARE_INTERFACES, TushareInterface, get_doc_url, get_vip_api_name
-from src.data.tushare_fetcher import RateLimiter, TushareApiError, TushareFetcher, TushareTokenError
+from src.data.interfaces import (
+    TUSHARE_INTERFACES,
+    TushareInterface,
+    get_doc_url,
+    get_vip_api_name,
+)
+from src.data.tushare_fetcher import (
+    RateLimiter,
+    TushareApiError,
+    TushareFetcher,
+    TushareTokenError,
+)
 from src.schemas.financial import StockFeatures, StockInfo
 
 __all__ = [

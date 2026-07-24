@@ -60,6 +60,9 @@ TUSHARE_INTERFACES: dict[str, TushareInterface] = {
     "stk_holdertrade": TushareInterface("stk_holdertrade", "stk_holdertrade", _DOC + "175", 2000, "股东增减持"),
     "share_float": TushareInterface("share_float", "share_float", _DOC + "160", 120, "限售股解禁"),
     "repurchase": TushareInterface("repurchase", "repurchase", _DOC + "124", 2000, "股票回购"),
+    "index_member_all": TushareInterface(
+        "index_member_all", "index_member_all", _DOC + "335", 2000, "申万行业成分（分级）"
+    ),
 }
 
 

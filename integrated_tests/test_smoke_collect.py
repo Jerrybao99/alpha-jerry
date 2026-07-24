@@ -7,12 +7,16 @@ from __future__ import annotations
 import datetime as _dt
 from pathlib import Path
 
+import pytest
+
 from scripts.smoke_collect import run_smoke
-from src.config import Settings
+from src.config import Settings, get_settings
+from src.data.base import BaseFetcher
+from src.data.tushare_fetcher import TushareFetcher
 from src.schemas.financial import StockFeatures, StockInfo
 
 
-class _FakeFetcher:
+class _FakeFetcher(BaseFetcher):
     def __init__(self, features: dict[str, StockFeatures]) -> None:
         self.features = features
 
@@ -33,14 +37,11 @@ def _feat(ts_code: str) -> StockFeatures:
         symbol=ts_code.split(".")[0],
         name=ts_code,
         industry="银行",
-        list_date="19991110",
         end_date="20241231",
         revenue=1.5e10,  # 150亿
         n_income_attr_p=3.4e9,  # 34亿
         roe=12.5,
         netprofit_yoy=20.0,  # 百分比
-        total_mv=3.2e6,  # 320万
-        audit_result="标准无保留意见",
     )
 
 
@@ -61,38 +62,52 @@ def test_features_csv_chinese_header_and_format(tmp_path: Path) -> None:
     out = tmp_path / "test"
     feat_path, _, _, _ = run_smoke(fetcher, _settings(tmp_path), 2, out, date=_dt.date(2026, 7, 23))
     text = feat_path.read_text(encoding="utf-8-sig")
-    lines = text.strip().split("\n")
-    header = lines[1]  # 第一行是 BOM+header；split 后首行含 BOM，取首行即可
-    header = lines[0].lstrip("\ufeff")
-    # 中文列头存在
-    assert "股票代码(ts_code)" in header
+    header = text.strip().split("\n")[0].lstrip("\ufeff")
+    # 中文列头存在（首列：股票名称；次列：股票代码；symbol 列已删除）
+    assert "股票名称" in header
+    assert "股票代码" in header
     assert "营业收入" in header
+    # symbol 列不再出现
+    assert "股票代码(ts_code)" not in header
+    # 已删除的列不再出现（上市日期/公告日期/财务费用利息收入/每股分红/分红进度）
+    assert "上市日期" not in header
+    assert "公告日期" not in header
+    assert "财务费用利息收入" not in header
+    assert "每股分红" not in header
+    assert "分红进度" not in header
     # 百分比带 % 两位小数
     assert "20.00%" in text
-    # 大数用亿/万（非科学计数法）
-    assert "150.00亿" in text
-    assert "34.00亿" in text
+    # 大数用亿/万（非科学计数法）；金额字段加「元」后缀
+    assert "150.00亿元" in text
+    assert "34.00亿元" in text
+    # 非金额字段（百分比）不加「元」
+    assert "20.00%元" not in text
     # 无科学计数法
     assert "e+" not in text.lower() and "E+" not in text
+    # 已删除的列不再出现
+    assert "交易日" not in header
+    assert "流通股本" not in header
+    assert "市盈率" not in header
+    assert "市净率" not in header
+    assert "股息率" not in header
+    assert "总市值" not in header
+    assert "流通市值" not in header
+    assert "审计结果" not in header
+    assert "会计事务所" not in header
+    assert "质押比例" not in header
 
 
-def test_features_csv_cells_aligned(tmp_path: Path) -> None:
-    """同一列（除最后一列外）所有行显示宽度一致（CJK 感知对齐；最后一列不填充）。"""
-    from src.reports.csv_writer import display_width
-
+def test_features_csv_cells_clean_no_trailing_spaces(tmp_path: Path) -> None:
+    """单元格无首尾空格，Excel 双击列边界即可自适应列宽。"""
     fetcher = _FakeFetcher({"600000.SH": _feat("600000.SH"), "000001.SZ": _feat("000001.SZ")})
     out = tmp_path / "test"
     feat_path, _, _, _ = run_smoke(fetcher, _settings(tmp_path), 2, out, date=_dt.date(2026, 7, 23))
     text = feat_path.read_text(encoding="utf-8-sig")
     if text.endswith("\n"):
         text = text[:-1]
-    lines = text.split("\n")
-    lines[0] = lines[0].lstrip("\ufeff")
-    fields = [ln.split(",") for ln in lines]
-    n_cols = len(fields[0])
-    for col in range(n_cols - 1):  # 最后一列不填充，跳过
-        widths = {display_width(row[col]) for row in fields}
-        assert len(widths) == 1, f"列 {col} 未对齐: {widths}"
+    for lineno, line in enumerate(text.split("\n"), start=1):
+        for colno, cell in enumerate(line.split(","), start=1):
+            assert cell == cell.strip(), f"行{lineno}列{colno}有首尾空格: {cell!r}"
 
 
 def test_data_source_csv_content(tmp_path: Path) -> None:
@@ -100,13 +115,19 @@ def test_data_source_csv_content(tmp_path: Path) -> None:
     out = tmp_path / "test"
     _, src_path, _, _ = run_smoke(fetcher, _settings(tmp_path), 1, out, date=_dt.date(2026, 7, 23))
     text = src_path.read_text(encoding="utf-8-sig")
-    assert text.startswith("接口,字段,字段中文,文档URL")
+    assert text.startswith("接口,字段,字段中文,单位,单位来源,文档URL")
     # 含 vip 接口名与文档 URL
     assert "income_vip" in text
     assert "https://tushare.pro/document/2?doc_id=" in text
-    # 每行 4 列
+    # 不再使用 dividend 接口
+    assert "dividend" not in text
+    # ts_code 归属 stock_basic 接口（不因 income 也含 ts_code 而被覆写）
+    assert "stock_basic,ts_code," in text
+    # 单位与来源：推断（百分比 %）
+    assert "netprofit_yoy,归母净利润同比增长率(%),%,推断," in text
+    # 每行 6 列（5 个逗号）
     for ln in text.strip().split("\n")[1:]:
-        assert ln.count(",") == 3
+        assert ln.count(",") == 5
 
 
 def test_smoke_sample_clamped(tmp_path: Path) -> None:
@@ -115,3 +136,33 @@ def test_smoke_sample_clamped(tmp_path: Path) -> None:
     out = tmp_path / "test"
     _, _, ok, _ = run_smoke(fetcher, _settings(tmp_path), 5, out, date=_dt.date(2026, 7, 23))
     assert ok == 1
+
+
+@pytest.mark.network
+def test_smoke_regenerates_latest_csv() -> None:
+    """真实采集 5 股，用最新数据覆盖落地到 ``data/test/YYMMDD.csv``。
+
+    每次清空缓存以确保取最新报告期（不受 TTL 缓存影响）；同名文件直接覆盖。
+    本地运行：``uv run pytest -m network \
+    integrated_tests/test_smoke_collect.py::test_smoke_regenerates_latest_csv``
+    无 TUSHARE_TOKEN 时 skip；CI 因 ``-m "not network"`` 跳过。
+    """
+    settings = get_settings()
+    if not settings.tushare_token.strip():
+        pytest.skip("未配置 TUSHARE_TOKEN")
+    # 清缓存，强制重新采集最新报告期
+    cache_dir = settings.data_root / "cache"
+    if cache_dir.exists():
+        for p in cache_dir.glob("*.json"):
+            p.unlink()
+    fetcher = TushareFetcher(settings)
+    out_dir = settings.data_root / "test"
+    feat_path, src_path, ok, fail = run_smoke(fetcher, settings, 5, out_dir)
+    assert ok == 5 and fail == 0, f"采集未全部成功：ok={ok} fail={fail}"
+    assert feat_path.exists() and src_path.exists()
+    # 校验报告期为最新（≥ 法定最新应已披露报告期）
+    from src.utils.period import expected_latest_period
+
+    expected = expected_latest_period(_dt.date.today())
+    text = feat_path.read_text(encoding="utf-8-sig")
+    assert expected in text, f"CSV 未包含最新报告期 {expected}"

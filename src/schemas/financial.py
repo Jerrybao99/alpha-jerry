@@ -18,7 +18,6 @@ FINA_INDICATOR = "fina_indicator"  # vip: fina_indicator_vip
 DAILY_BASIC = "daily_basic"
 FINA_AUDIT = "fina_audit"
 PLEDGE_STAT = "pledge_stat"
-DIVIDEND = "dividend"
 COMPUTED = "computed_in_scoring"  # 评分时由真实字段计算，不落盘
 UNAVAILABLE = "unavailable"  # Tushare 无此字段且无近似，首版不采集
 
@@ -49,8 +48,6 @@ REQUIREMENT_ALIGNMENT: list[RequirementAlign] = [
     RequirementAlign("股票代码", STOCK_BASIC, "symbol", "股票代码", "exact"),
     RequirementAlign("股票名称", STOCK_BASIC, "name", "股票名称", "exact"),
     RequirementAlign("行业属性", STOCK_BASIC, "industry", "所属行业", "exact"),
-    RequirementAlign("上市日期", STOCK_BASIC, "list_date", "上市日期", "exact"),
-    RequirementAlign("财报发布日期", INCOME, "ann_date", "公告日期", "exact"),
     RequirementAlign("财报所属期间", INCOME, "end_date", "报告期", "exact", "如 20171231"),
     RequirementAlign("主营收入", INCOME, "revenue", "营业收入", "approximate", "营业收入近似主营收入"),
     RequirementAlign("主营利润", INCOME, "operate_profit", "营业利润", "approximate", "以营业利润近似"),
@@ -89,7 +86,7 @@ REQUIREMENT_ALIGNMENT: list[RequirementAlign] = [
     RequirementAlign("销售毛利率", FINA_INDICATOR, "grossprofit_margin", "销售毛利率(%)", "exact"),
     RequirementAlign("调整后每股净资产", UNAVAILABLE, None, "调整后每股净资产", "unavailable", "Tushare 无此字段"),
     RequirementAlign("总股本", BALANCESHEET, "total_share", "期末总股本", "exact"),
-    RequirementAlign("无限售股合计", DAILY_BASIC, "float_share", "流通股本", "approximate", "近似无限售股合计"),
+    RequirementAlign("无限售股合计", UNAVAILABLE, None, "流通股本", "unavailable", "首版已删除不采集"),
     RequirementAlign("A股数量", UNAVAILABLE, None, "A股数量", "unavailable", "Tushare 无此字段"),
     RequirementAlign("B股数量", UNAVAILABLE, None, "B股数量", "unavailable", "Tushare 无此字段"),
     RequirementAlign("限售股合计", COMPUTED, None, "限售股合计", "computed_in_scoring", "= total_share - float_share"),
@@ -132,26 +129,15 @@ class SupplementaryField:
 
 SUPPLEMENTARY_FIELDS: list[SupplementaryField] = [
     SupplementaryField("money_cap", "货币资金", BALANCESHEET, "veto"),
-    SupplementaryField("fin_exp_int_inc", "财务费用利息收入", INCOME, "veto"),
-    SupplementaryField("audit_result", "审计结果", FINA_AUDIT, "veto"),
-    SupplementaryField("audit_agency", "会计事务所", FINA_AUDIT, "veto"),
-    SupplementaryField("pledge_ratio", "质押比例", PLEDGE_STAT, "veto"),
     SupplementaryField("free_cashflow", "企业自由现金流量", CASHFLOW, "scoring"),
     SupplementaryField("inv_turn", "存货周转率", FINA_INDICATOR, "scoring"),
-    SupplementaryField("pe_ttm", "市盈率TTM", DAILY_BASIC, "scoring"),
-    SupplementaryField("pb", "市净率", DAILY_BASIC, "scoring"),
-    SupplementaryField("dv_ttm", "股息率TTM(%)", DAILY_BASIC, "scoring"),
-    SupplementaryField("cash_div", "每股分红(税后)", DIVIDEND, "scoring"),
-    SupplementaryField("total_mv", "总市值(万元)", DAILY_BASIC, "scoring"),
-    SupplementaryField("circ_mv", "流通市值(万元)", DAILY_BASIC, "scoring"),
 ]
 
 
 # ===== 各接口需请求的真实字段（供 TushareFetcher 拼 fields= 参数）=====
-STOCK_BASIC_FIELDS: tuple[str, ...] = ("ts_code", "symbol", "name", "industry", "list_date")
+STOCK_BASIC_FIELDS: tuple[str, ...] = ("ts_code", "symbol", "name", "industry")
 INCOME_FIELDS: tuple[str, ...] = (
     "ts_code",
-    "ann_date",
     "end_date",
     "revenue",
     "operate_profit",
@@ -160,7 +146,6 @@ INCOME_FIELDS: tuple[str, ...] = (
     "non_oper_exp",
     "total_profit",
     "n_income_attr_p",
-    "fin_exp_int_inc",
 )
 BALANCESHEET_FIELDS: tuple[str, ...] = (
     "ts_code",
@@ -204,42 +189,78 @@ FINA_INDICATOR_FIELDS: tuple[str, ...] = (
     "ocf_to_shortdebt",
     "inv_turn",
 )
-DAILY_BASIC_FIELDS: tuple[str, ...] = (
-    "ts_code",
-    "trade_date",
-    "float_share",
-    "pe_ttm",
-    "pb",
-    "dv_ttm",
-    "total_mv",
-    "circ_mv",
-)
-FINA_AUDIT_FIELDS: tuple[str, ...] = ("ts_code", "ann_date", "end_date", "audit_result", "audit_agency")
-PLEDGE_STAT_FIELDS: tuple[str, ...] = ("ts_code", "end_date", "pledge_ratio")
-DIVIDEND_FIELDS: tuple[str, ...] = ("ts_code", "end_date", "cash_div", "div_proc")
+DAILY_BASIC_FIELDS: tuple[str, ...] = ("ts_code",)
+FINA_AUDIT_FIELDS: tuple[str, ...] = ("ts_code", "end_date")
+PLEDGE_STAT_FIELDS: tuple[str, ...] = ("ts_code", "end_date")
 
-# 输出列顺序（Tushare 真实字段名）；ts_code 为主键置首。
+# 输出列顺序（Tushare 真实字段名）；name 首列，ts_code 次列，不含 symbol。
 OUTPUT_COLUMNS: tuple[str, ...] = (
-    *STOCK_BASIC_FIELDS,
-    *INCOME_FIELDS[1:],  # 去重 ts_code
-    *BALANCESHEET_FIELDS[1:],
-    *CASHFLOW_FIELDS[1:],
-    *FINA_INDICATOR_FIELDS[1:],
-    *DAILY_BASIC_FIELDS[1:],
+    # —— 基本信息 ——
+    "name",
+    "ts_code",
+    "industry",
+    "end_date",
+    # —— 利润表（盈利能力）——
+    "revenue",
+    "operate_profit",
+    "non_oper_income",
+    "non_oper_exp",
+    "invest_income",
+    "total_profit",
+    "n_income_attr_p",
+    # —— 利润率与增速 ——
+    "grossprofit_margin",
+    "netprofit_margin",
+    "or_yoy",
+    "netprofit_yoy",
+    # —— 资产负债表（资产端）——
+    "total_assets",
+    "total_cur_assets",
+    "fix_assets",
+    "intan_assets",
+    # —— 资产负债表（负债端）——
+    "total_liab",
+    "total_cur_liab",
+    "total_ncl",
+    # —— 资产负债表（权益端）——
+    "total_hldr_eqy_exc_min_int",
+    "cap_rese",
+    "undistr_porfit",
+    "money_cap",
+    # —— 偿债与杠杆指标 ——
+    "debt_to_assets",
+    "current_ratio",
+    "quick_ratio",
+    "assets_to_eqt",
+    # —— 每股指标与回报 ——
+    "total_share",
+    "eps",
+    "bps",
+    "ocfps",
+    "capital_rese_ps",
+    "undist_profit_ps",
+    "roe",
+    # —— 现金流量 ——
+    "n_cashflow_act",
+    "n_cashflow_inv_act",
+    "n_cash_flows_fnc_act",
+    "n_incr_cash_cash_equ",
+    "free_cashflow",
+    "ocf_to_shortdebt",
+    # —— 营运效率 ——
+    "inv_turn",
 )
 
 # 补充输出列（一票否决/评分辅助，追加在 OUTPUT_COLUMNS 之后；去重已出现在核心列的字段）
 _core_set = set(OUTPUT_COLUMNS)
-SUPPLEMENTARY_COLUMNS: tuple[str, ...] = tuple(
-    f for f in (*FINA_AUDIT_FIELDS[1:], *PLEDGE_STAT_FIELDS[1:], *DIVIDEND_FIELDS[1:]) if f not in _core_set
-)
+SUPPLEMENTARY_COLUMNS: tuple[str, ...] = ()
 
 # 全部输出列 = 核心列 + 补充列（无重复）
 ALL_OUTPUT_COLUMNS: tuple[str, ...] = (*OUTPUT_COLUMNS, *SUPPLEMENTARY_COLUMNS)
 
 # Tushare 以百分数数值返回的字段（如 30.5 表示 30.5%）；写盘时按 dev-log 加 % 后缀。
 PERCENT_FIELDS: frozenset[str] = frozenset(
-    {"netprofit_yoy", "or_yoy", "grossprofit_margin", "debt_to_assets", "netprofit_margin", "dv_ttm"}
+    {"netprofit_yoy", "or_yoy", "grossprofit_margin", "debt_to_assets", "netprofit_margin"}
 )
 
 
@@ -252,7 +273,6 @@ class StockInfo(BaseModel):
     symbol: str = ""
     name: str = ""
     industry: str = ""
-    list_date: str | None = None
 
 
 class StockFeatures(BaseModel):
@@ -270,9 +290,7 @@ class StockFeatures(BaseModel):
     symbol: str = ""
     name: str = ""
     industry: str = ""
-    list_date: str | None = None
     # —— income ——
-    ann_date: str | None = None
     end_date: str | None = None
     revenue: float | None = None
     operate_profit: float | None = None
@@ -281,7 +299,6 @@ class StockFeatures(BaseModel):
     non_oper_exp: float | None = None
     total_profit: float | None = None
     n_income_attr_p: float | None = None
-    fin_exp_int_inc: float | None = None
     # —— balancesheet ——
     undistr_porfit: float | None = None
     total_assets: float | None = None
@@ -318,22 +335,7 @@ class StockFeatures(BaseModel):
     netprofit_margin: float | None = None
     ocf_to_shortdebt: float | None = None
     inv_turn: float | None = None
-    # —— daily_basic ——
-    trade_date: str | None = None
-    float_share: float | None = None
-    pe_ttm: float | None = None
-    pb: float | None = None
-    dv_ttm: float | None = None
-    total_mv: float | None = None
-    circ_mv: float | None = None
-    # —— fina_audit（补充·一票否决）——
-    audit_result: str | None = None
-    audit_agency: str | None = None
-    # —— pledge_stat（补充·一票否决）——
-    pledge_ratio: float | None = None
-    # —— dividend（补充·评分）——
-    cash_div: float | None = None
-    div_proc: str | None = None
+
 
     @classmethod
     def output_columns(cls) -> list[str]:

@@ -60,7 +60,14 @@ class CollectionPipeline:
     ) -> None:
         self.fetcher = fetcher
         self.settings = settings or get_settings()
-        self.cache = cache if cache is not None else Cache(self.settings.data_root / "cache")
+        self.cache = (
+            cache
+            if cache is not None
+            else Cache(
+                self.settings.data_root / "cache",
+                ttl_seconds=self.settings.cache_ttl_hours * 3600 if self.settings.cache_ttl_hours > 0 else None,
+            )
+        )
         self._owns_executor = executor is None
         self._executor = executor or ThreadPoolExecutor(max_workers=max(1, self.settings.concurrency))
 
@@ -74,6 +81,9 @@ class CollectionPipeline:
         if codes:
             wanted = set(codes)
             stocks = [s for s in stocks if s.ts_code in wanted]
+        # 申万行业五大类分类（仅对采集范围内的股票，避免全量 API 调用）
+        if hasattr(self.fetcher, "_enrich_with_sw_category"):
+            self.fetcher._enrich_with_sw_category(stocks)  # type: ignore[union-attr]
         result = CollectionResult(total=len(stocks))
         name_map = {s.ts_code: s.name for s in stocks}
         info_map = {s.ts_code: s for s in stocks}
@@ -98,7 +108,7 @@ class CollectionPipeline:
 
     @staticmethod
     def _enrich_with_stock_info(features: StockFeatures, info: StockInfo | None) -> None:
-        """回填 stock_basic 字段（symbol/name/industry/list_date）——fetch_financials 只采财务接口。"""
+        """回填 stock_basic 字段（symbol/name/industry）——fetch_financials 只采财务接口。"""
         if info is None:
             return
         if not features.symbol:
@@ -107,8 +117,6 @@ class CollectionPipeline:
             features.name = info.name
         if not features.industry:
             features.industry = info.industry
-        if features.list_date is None:
-            features.list_date = info.list_date
 
     def _fetch_one(self, ts_code: str, period: str | None) -> tuple[StockFeatures | None, bool]:
         """采集单股：先查缓存，未命中再调接口并回写缓存。返回 (特征, 是否命中缓存)。"""

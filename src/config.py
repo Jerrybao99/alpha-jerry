@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     data_dir: str = "data"
     concurrency: int = 4
     tushare_rate_limit: int = 500  # 每分钟调用上限（5000积分 500次/分，见 doc_id=290）
+    cache_ttl_hours: int = 24  # "最新"缓存有效期（小时），过期重采以获取新报告期
 
     # ===== 定时任务（dev-guide §10.2）=====
     hotspot_cron_09: str = "0 9 * * *"

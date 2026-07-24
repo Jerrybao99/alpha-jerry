@@ -8,7 +8,12 @@ import csv
 from pathlib import Path
 
 from src.data.interfaces import TUSHARE_INTERFACES
-from src.schemas.financial import COMPUTED, REQUIREMENT_ALIGNMENT, SUPPLEMENTARY_FIELDS, UNAVAILABLE
+from src.schemas.financial import (
+    COMPUTED,
+    REQUIREMENT_ALIGNMENT,
+    SUPPLEMENTARY_FIELDS,
+    UNAVAILABLE,
+)
 
 OUTPUT = Path(__file__).resolve().parent.parent / "docs" / "field-mapping.csv"
 

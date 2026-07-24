@@ -33,6 +33,7 @@ def test_settings_defaults() -> None:
     assert s.data_dir == "data"
     assert s.concurrency == 4
     assert s.tushare_rate_limit == 500
+    assert s.cache_ttl_hours == 24
     assert s.wechat_push_enabled is False
 
 

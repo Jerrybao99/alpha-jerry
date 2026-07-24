@@ -13,14 +13,10 @@ from src.schemas.financial import (
     ALL_OUTPUT_COLUMNS,
     BALANCESHEET_FIELDS,
     CASHFLOW_FIELDS,
-    DAILY_BASIC_FIELDS,
-    DIVIDEND_FIELDS,
-    FINA_AUDIT_FIELDS,
     FINA_INDICATOR_FIELDS,
     INCOME_FIELDS,
     OUTPUT_COLUMNS,
     PERCENT_FIELDS,
-    PLEDGE_STAT_FIELDS,
     REQUIREMENT_ALIGNMENT,
     STOCK_BASIC_FIELDS,
     SUPPLEMENTARY_COLUMNS,
@@ -31,11 +27,14 @@ from src.schemas.financial import (
 )
 
 
-def test_requirement_alignment_covers_all_55() -> None:
-    """§8.1 共 55 个需求字段，对齐表必须全覆盖且中文名唯一。"""
+def test_requirement_alignment_covers_all() -> None:
+    """§8.1 需求字段（采集层落地）对齐表全覆盖且中文名唯一。
+
+    owner 决策移除上市日期/公告日期列，采集对齐表由 55 收敛为 53（见 CHANGELOG）。
+    """
     reqs = [a.requirement for a in REQUIREMENT_ALIGNMENT]
-    assert len(reqs) == 55
-    assert len(set(reqs)) == 55
+    assert len(reqs) == 53
+    assert len(set(reqs)) == 53
 
 
 def test_requirement_has_chinese_name() -> None:
@@ -58,9 +57,9 @@ def test_requirement_match_types_valid() -> None:
 def test_requirement_coverage_summary() -> None:
     """覆盖统计：exact 占多数，unavailable 受控。"""
     cov = requirement_coverage()
-    assert sum(cov.values()) == 55
+    assert sum(cov.values()) == 53
     assert cov["exact"] >= 35
-    assert cov["unavailable"] == 5  # 调整后每股净资产/A股/B股/国家持股/国有法人持股
+    assert cov["unavailable"] == 6  # 调整后每股净资产/A股/B股/国家持股/国有法人持股 + float_share已删除
     assert cov["computed_in_scoring"] == 6
 
 
@@ -72,19 +71,16 @@ def test_endpoint_field_lists_no_duplicate() -> None:
         BALANCESHEET_FIELDS,
         CASHFLOW_FIELDS,
         FINA_INDICATOR_FIELDS,
-        DAILY_BASIC_FIELDS,
-        FINA_AUDIT_FIELDS,
-        PLEDGE_STAT_FIELDS,
-        DIVIDEND_FIELDS,
     ):
         assert len(fields) == len(set(fields)), fields
         assert "ts_code" in fields
 
 
 def test_output_columns_are_tushare_real_names() -> None:
-    """输出列全部为 Tushare 真实字段名，ts_code 置首，无中文名/无自造字段。"""
+    """输出列全部为 Tushare 真实字段名，name 首列，ts_code 次列，symbol 不在输出列中。"""
     cols = list(OUTPUT_COLUMNS)
-    assert cols[0] == "ts_code"
+    assert cols[0] == "name"
+    assert cols[1] == "ts_code"
     assert len(cols) == len(set(cols))  # 无重复
     for f in (
         "n_income_attr_p",
@@ -94,16 +90,9 @@ def test_output_columns_are_tushare_real_names() -> None:
         "grossprofit_margin",
         "debt_to_assets",
         "ocf_to_shortdebt",
-        "float_share",
-        "fin_exp_int_inc",
         "money_cap",
         "free_cashflow",
         "inv_turn",
-        "pe_ttm",
-        "pb",
-        "dv_ttm",
-        "total_mv",
-        "circ_mv",
     ):
         assert f in cols, f
     assert StockFeatures.output_columns() == cols
@@ -194,21 +183,12 @@ def test_stock_features_real_field_roundtrip() -> None:
         revenue=1.2e10,
         n_income_attr_p=3.4e9,
         roe=12.5,
-        float_share=2.9e10,
         money_cap=5.0e11,
-        audit_result="标准无保留意见",
-        pledge_ratio=15.3,
-        pe_ttm=6.5,
-        dv_ttm=4.2,
     )
     dumped = feat.model_dump()
     assert dumped["ts_code"] == "600000.SH"
     assert dumped["n_income_attr_p"] == 3.4e9
-    assert dumped["float_share"] == 2.9e10
     assert dumped["money_cap"] == 5.0e11
-    assert dumped["audit_result"] == "标准无保留意见"
-    assert dumped["pledge_ratio"] == 15.3
-    assert dumped["pe_ttm"] == 6.5
     assert set(dumped) >= set(ALL_OUTPUT_COLUMNS)
 
 
@@ -219,11 +199,10 @@ def test_stock_features_tolerates_missing() -> None:
     assert dumped["n_income_attr_p"] is None
     assert dumped["eps"] is None
     assert dumped["money_cap"] is None
-    assert dumped["audit_result"] is None
 
 
 def test_stock_info_real_fields() -> None:
-    info = StockInfo(ts_code="600000.SH", symbol="600000", name="浦发银行", industry="银行", list_date="19991110")
+    info = StockInfo(ts_code="600000.SH", symbol="600000", name="浦发银行", industry="银行")
     assert info.ts_code == "600000.SH"
     assert info.symbol == "600000"
 

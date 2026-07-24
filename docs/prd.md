@@ -108,7 +108,7 @@ alpha-jerry/
 │   ├── prd.md                 # 本文件
 │   ├── dev-log.md
 │   ├── architecture.md        # 架构详解（ADR）
-│   ├── data-contract.md       # 字段契约与评分规则
+│   ├── data-contract.md       # 字段契约与评分规则（已合并入 dev-guide §8.1）
 │   └── prompt-library.md      # Prompt 模板库
 ├── data/                      # 运行期数据（gitignore）
 │   ├── fin/                   # YYMMDD.csv / -评分 / -评级 / -否决 / -失败
@@ -340,7 +340,7 @@ alpha-jerry/
 
 采集并落地到 `data/fin/YYMMDD.csv`，**列名采用 Tushare 接口真实返回字段名、数据为真实值**（owner 决策，§8.1）。原始 55 需求字段→Tushare 真实字段的对齐表与 46 列输出清单的单一事实来源为代码：`src/schemas/financial.py` 的 `REQUIREMENT_ALIGNMENT` 与 `OUTPUT_COLUMNS`。对齐结果：exact 40 / approximate 4 / computed_in_scoring 6（评分时计算，不落盘）/ unavailable 5（首版不采集）。
 
-> 完整字段清单与计算口径见 `docs/data-contract.md`（待创建）。涉及百分比的字段须带百分号后缀、保留两位小数（dev-log）。
+> 完整字段清单与计算口径见 dev-guide §8.1。涉及百分比的字段须带百分号后缀、保留两位小数（dev-log）。
 
 ### 6.2 一票否决规则
 
@@ -545,7 +545,7 @@ LLM_LOCAL_FALLBACK=false  # 是否启用本地模型兜底
 - [ ] 桌面端 Win/Mac 可安装运行，可对话交互。
 - [ ] 图标为巧克力色荷兰侏政兔风格。
 - [ ] 数据全部本地存储，`.env` 不入库。
-- [ ] `docs/data-contract.md` / `docs/architecture.md` / `docs/prompt-library.md` 与代码同步。
+- [x] `docs/field-mapping.csv` / `docs/architecture.md` / `docs/prompt-library.md` 与代码同步。字段契约已合并入 dev-guide §8.1。
 - [ ] `CHANGELOG.md` 按 Keep a Changelog 维护，版本号遵循 SemVer。
 - [ ] CI（ruff lint + pytest）通过。
 

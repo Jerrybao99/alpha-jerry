@@ -10,7 +10,12 @@ from pathlib import Path
 
 from src.config import Settings
 from src.core.pipeline import CollectionPipeline
-from src.schemas.financial import ALL_OUTPUT_COLUMNS, PERCENT_FIELDS, StockFeatures, StockInfo
+from src.schemas.financial import (
+    ALL_OUTPUT_COLUMNS,
+    PERCENT_FIELDS,
+    StockFeatures,
+    StockInfo,
+)
 from src.utils.cache import Cache
 from src.utils.format import format_percent, to_output_row
 
@@ -94,6 +99,26 @@ def test_cache_corrupt_returns_none(tmp_path: Path) -> None:
     cache = Cache(tmp_path / "c")
     (tmp_path / "c" / "600000.SH_latest.json").write_text("not json", encoding="utf-8")
     assert cache.get("600000.SH", None) is None
+
+
+def test_cache_ttl_expires_for_latest(tmp_path: Path) -> None:
+    """period=None 的"最新"缓存超 TTL 即失效；显式 period 不受 TTL 影响。"""
+    import os
+    import time
+
+    cache = Cache(tmp_path / "c", ttl_seconds=1.0)
+    feat = _feat("600000.SH")
+    cache.set("600000.SH", None, feat)
+    assert cache.get("600000.SH", None) is not None  # 新鲜命中
+    # 把缓存文件 mtime 改到 100 秒前
+    latest = tmp_path / "c" / "600000.SH_latest.json"
+    old = time.time() - 100
+    os.utime(latest, (old, old))
+    assert cache.get("600000.SH", None) is None  # 过期视为未命中
+    # 显式 period 历史数据不可变，不受 TTL 约束
+    cache.set("600000.SH", "20241231", feat)
+    os.utime(tmp_path / "c" / "600000.SH_20241231.json", (old, old))
+    assert cache.get("600000.SH", "20241231") is not None
 
 
 # ===== format =====

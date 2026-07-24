@@ -69,15 +69,11 @@ _ALL_APIS = (
     "balancesheet_vip",
     "cashflow_vip",
     "fina_indicator_vip",
-    "daily_basic",
-    "fina_audit",
-    "pledge_stat",
-    "dividend",
 )
 
 
 def _set_all_empty(pro: _FakePro, except_: set[str] | None = None) -> None:
-    """把除 except_ 外的 8 个接口全部设为空响应（fetch_financials 默认场景）。"""
+    """把除 except_ 外的 4 个接口全部设为空响应（fetch_financials 默认场景）。"""
     for api in _ALL_APIS:
         if api not in (except_ or set()):
             pro.set_response(api, [])
@@ -179,14 +175,12 @@ def test_fetch_stock_list_maps_rows() -> None:
                 "symbol": "600000",
                 "name": "浦发银行",
                 "industry": "银行",
-                "list_date": "19991110",
             },
             {
                 "ts_code": "000001.SZ",
                 "symbol": "000001",
                 "name": "平安银行",
                 "industry": "银行",
-                "list_date": "19910403",
             },
         ],
     )
@@ -217,17 +211,6 @@ def test_fetch_financials_picks_latest_and_aggregates() -> None:
     pro.set_response(
         "fina_indicator_vip", [{"ts_code": "600000.SH", "end_date": "20241231", "roe": 12.5, "netprofit_yoy": 20.0}]
     )
-    # daily_basic 两日，取 trade_date 更大
-    pro.set_response(
-        "daily_basic",
-        [
-            {"ts_code": "600000.SH", "trade_date": "20250101", "pe_ttm": 7.0, "total_mv": 3.0e6},
-            {"ts_code": "600000.SH", "trade_date": "20250321", "pe_ttm": 6.5, "total_mv": 3.2e6},
-        ],
-    )
-    pro.set_response("fina_audit", [{"ts_code": "600000.SH", "end_date": "20241231", "audit_result": "标准无保留意见"}])
-    pro.set_response("pledge_stat", [{"ts_code": "600000.SH", "end_date": "20241231", "pledge_ratio": 15.3}])
-    pro.set_response("dividend", [{"ts_code": "600000.SH", "end_date": "20241231", "cash_div": 0.5}])
 
     feat = TushareFetcher(settings=_settings(), pro=pro, sleep=_no_sleep).fetch_financials("600000.SH")
     dumped = feat.model_dump()
@@ -240,17 +223,21 @@ def test_fetch_financials_picks_latest_and_aggregates() -> None:
         "n_cashflow_act": 3.0e9,
         "roe": 12.5,
         "netprofit_yoy": 20.0,
-        "pe_ttm": 6.5,
-        "total_mv": 3.2e6,
-        "trade_date": "20250321",
-        "audit_result": "标准无保留意见",
-        "pledge_ratio": 15.3,
-        "cash_div": 0.5,
         "eps": None,
-        "pb": None,
     }
     for k, v in expected.items():
         assert dumped[k] == v, k
+
+
+def test_fetch_financials_end_date_locked_to_income() -> None:
+    """end_date 锁定为 income 报告期，不被其他接口的 end_date 覆盖。"""
+    pro = _FakePro()
+    pro.set_response("income_vip", [{"ts_code": "600000.SH", "end_date": "20260331", "revenue": 1.0e10}])
+    pro.set_response("balancesheet_vip", [{"ts_code": "600000.SH", "end_date": "20260331", "total_assets": 1.0e12}])
+    pro.set_response("cashflow_vip", [{"ts_code": "600000.SH", "end_date": "20260331", "n_cashflow_act": 3.0e9}])
+    pro.set_response("fina_indicator_vip", [{"ts_code": "600000.SH", "end_date": "20260331", "roe": 12.5}])
+    feat = TushareFetcher(settings=_settings(), pro=pro, sleep=_no_sleep).fetch_financials("600000.SH")
+    assert feat.end_date == "20260331"
 
 
 def test_fetch_financials_nan_normalized_to_none() -> None:
@@ -270,17 +257,16 @@ def test_fetch_financials_passes_period_param() -> None:
     by_api = {c["api_name"]: c for c in pro.calls}
     assert by_api["income_vip"]["period"] == "20241231"
     assert by_api["fina_indicator_vip"]["period"] == "20241231"
-    assert "period" not in by_api["daily_basic"]
 
 
-def test_fetch_financials_calls_all_8_interfaces() -> None:
-    """fetch_financials 必须覆盖 4 财务 + daily_basic + 3 补充共 8 个接口。"""
+def test_fetch_financials_calls_all_4_interfaces() -> None:
+    """fetch_financials 必须覆盖 4 个 vip 财务接口。"""
     pro = _FakePro()
     _set_all_empty(pro)
     TushareFetcher(settings=_settings(), pro=pro, sleep=_no_sleep).fetch_financials("600000.SH")
     names = [c["api_name"] for c in pro.calls]
     assert set(names) == set(_ALL_APIS)
-    assert len(names) == 8
+    assert len(names) == 4
 
 
 def test_fetch_financials_no_date_falls_back_to_first() -> None:

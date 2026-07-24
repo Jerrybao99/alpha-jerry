@@ -22,7 +22,7 @@ class BaseFetcher(ABC):
     def fetch_stock_list(self) -> list[StockInfo]:
         """读取全部 A 股上市公司清单（FR-DATA-02，来源 stock_basic）。
 
-        返回每只股票的 ts_code、code(=symbol)、name、industry、list_date。
+        返回每只股票的 ts_code、code(=symbol)、name、industry。
         """
 
     @abstractmethod

@@ -162,6 +162,7 @@ date: 2026-07-21
 |---|---|---|---|
 | 语言 | Python | >= 3.12 | 后端/Agent/数据管道 |
 | 包管理 | uv | latest | 单虚拟环境，`uv.lock` |
+| 构建 | hatchling | latest | `[build-system]`，使 `uv run` 可导入 `src`/`api` 包 |
 | LLM | DeepSeek V4 Pro | 默认 provider | OpenAI 兼容接口 |
 | UI 设计参考 | Kimi K3 | — | 设计稿生成参考 |
 | 数据源 | Tushare Pro | latest | A 股基本面/行情/资金面 |
@@ -197,7 +198,7 @@ alpha-jerry/
 ├── docs/                      # 文档
 │   ├── brd.md / brd-1.md / prd.md / dev-guide.md（本文件）/ dev-log.md
 │   ├── architecture.md        # 架构详解（ADR）
-│   ├── data-contract.md       # 字段契约与计算口径
+│   ├── data-contract.md       # 字段契约与计算口径（已合并入 §8.1）
 │   └── prompt-library.md      # Prompt 模板库
 ├── data/                      # 运行期数据（gitignore）
 │   ├── fin/                   # YYMMDD.csv / -评分 / -评级 / -否决 / -失败
@@ -345,22 +346,87 @@ alpha-jerry/
 
 采集并落地到 `data/fin/YYMMDD.csv`，**列名采用 Tushare 接口真实返回字段名、数据为真实值**（owner 决策，对齐 https://tushare.pro/document/2；偏离原中文字段名约定已记 CHANGELOG）。
 
-单一事实来源为代码：`src/schemas/financial.py` 的 `OUTPUT_COLUMNS`（55 列）与 `REQUIREMENT_ALIGNMENT`（原始 55 需求→Tushare 字段对齐表，含真实字段中文翻译 `chinese_name`）。接口注册表见 `src/data/interfaces.py` 的 `TUSHARE_INTERFACES`（记录 `api_name` / `vip_api_name` / `doc_url` / `min_points`）。字段对应表 CSV 见 `docs/field-mapping.csv`，完整字段契约见 `docs/data-contract.md`。
+单一事实来源为代码：`src/schemas/financial.py` 的 `OUTPUT_COLUMNS`（44 列）与 `REQUIREMENT_ALIGNMENT`（53 需求→Tushare 字段对齐表，含真实字段中文翻译 `chinese_name`）。接口注册表见 `src/data/interfaces.py` 的 `TUSHARE_INTERFACES`（20 个接口，记录 `api_name` / `vip_api_name` / `doc_url` / `min_points`）。字段对应表 CSV 见 `docs/field-mapping.csv`（可用 `uv run python scripts/gen_field_mapping.py` 重新生成）。
 
-**接口选型（5000 积分可调用，优先 vip 高级接口）**：财务三表 / 指标 / 预告 / 快报 / 主营构成使用 `_vip` 后缀接口（按 `period` 批量取全市场），其余接口使用常规接口（≤5000 积分）。字段来源接口：`stock_basic` / `income_vip` / `balancesheet_vip` / `cashflow_vip` / `fina_indicator_vip` / `daily_basic`。
+**接口选型（5000 积分可调用，优先 vip 高级接口）**：财务三表 / 指标 / 预告 / 快报 / 主营构成使用 `_vip` 后缀接口（按 `period` 批量取全市场），其余接口使用常规接口（≤5000 积分）。`fetch_financials` 实际调用 4 个 vip 接口：`income_vip` / `balancesheet_vip` / `cashflow_vip` / `fina_indicator_vip`。
 
-原始 55 个需求字段对齐结果：
+完整接口注册表（20 个，详见 `src/data/interfaces.py`）：
+
+| 业务别名 | 常规接口 | vip 接口 | 最低积分 | doc_id | 用途 |
+|---|---|---|---|---|---|
+| stock_basic | stock_basic | — | 2000 | 25 | 股票列表 |
+| income | income | **income_vip** | 2000 | 33 | 利润表 |
+| balancesheet | balancesheet | **balancesheet_vip** | 2000 | 36 | 资产负债表 |
+| cashflow | cashflow | **cashflow_vip** | 2000 | 44 | 现金流量表 |
+| fina_indicator | fina_indicator | **fina_indicator_vip** | 2000 | 79 | 财务指标 |
+| daily_basic | daily_basic | — | 2000 | 32 | 每日指标（首版不调用） |
+| fina_audit | fina_audit | — | 2000 | 80 | 审计意见（首版不调用） |
+| dividend | dividend | — | 2000 | 103 | 分红送股（已移除） |
+| pledge_stat | pledge_stat | — | 2000 | 110 | 质押统计（首版不调用） |
+| forecast | forecast | **forecast_vip** | 2000 | 45 | 业绩预告 |
+| express | express | **express_vip** | 2000 | 46 | 业绩快报 |
+| fina_mainbz | fina_mainbz | **fina_mainbz_vip** | 2000 | 81 | 主营构成 |
+| top10_holders | top10_holders | — | 2000 | 61 | 前十大股东 |
+| top10_floatholders | top10_floatholders | — | 2000 | 62 | 前十大流通股东 |
+| disclosure_date | disclosure_date | — | 2000 | 162 | 财报披露日期 |
+| trade_cal | trade_cal | — | 2000 | 26 | 交易日历 |
+| stk_holdernumber | stk_holdernumber | — | 600 | 166 | 股东人数 |
+| stk_holdertrade | stk_holdertrade | — | 2000 | 175 | 股东增减持 |
+| share_float | share_float | — | 120 | 160 | 限售股解禁 |
+| repurchase | repurchase | — | 2000 | 124 | 股票回购 |
+
+原始 55 个需求字段对齐结果（落地 53 个）：
 
 | 对齐 | 数量 | 含义 |
 |---|---|---|
-| exact | 40 | Tushare 有精确字段，直接采集 |
-| approximate | 4 | 无精确字段取最近似：主营收入→`revenue`、主营利润→`operate_profit`、营业外收支→`non_oper_income`/`non_oper_exp`、无限售股合计→`float_share` |
-| computed_in_scoring | 6 | 不落盘，由 M2 评分纯函数基于真实字段计算：股东权益比、限售股合计、每股经营现金流/每股收益、净利润占营业利润比、主营利润率、投资收益占比 |
-| unavailable | 5 | Tushare 无且无近似，首版不采集：调整后每股净资产、A股数量、B股数量、国家持股数量、国有法人持股 |
+| exact | 38 | Tushare 有精确字段，直接采集 |
+| approximate | 3 | 无精确字段取最近似：主营收入→`revenue`、主营利润→`operate_profit`、营业外收支→`non_oper_income`/`non_oper_exp` |
+| computed_in_scoring | 6 | 不落盘，由 M2 评分纯函数基于真实字段计算（见下方计算口径表） |
+| unavailable | 6 | Tushare 无且无近似，首版不采集（见下方不可用字段表） |
 
-**补充字段（13 个，服务一票否决 §8.2 / 三维评分 §8.3）**：`SUPPLEMENTARY_FIELDS` 记录额外采集的字段（`money_cap`/`fin_exp_int_inc`/`audit_result`/`audit_agency`/`pledge_ratio`/`free_cashflow`/`inv_turn`/`pe_ttm`/`pb`/`dv_ttm`/`cash_div`/`total_mv`/`circ_mv`），来源 `balancesheet_vip`/`income_vip`/`fina_audit`/`pledge_stat`/`cashflow_vip`/`fina_indicator_vip`/`daily_basic`/`dividend`，追加在 `SUPPLEMENTARY_COLUMNS` 中。
+> owner 决策（见 CHANGELOG）：上市日期/公告日期不再采集输出，需求字段由 55 收敛为 53；float_share（流通股本）已删除不采集，由 approximate 移入 unavailable；brd-1.md §7.8 业务基线 55 字段清单保持不变。
 
-各接口请求字段见 `STOCK_BASIC_FIELDS` / `INCOME_FIELDS` / `BALANCESHEET_FIELDS` / `CASHFLOW_FIELDS` / `FINA_INDICATOR_FIELDS` / `DAILY_BASIC_FIELDS` / `FINA_AUDIT_FIELDS` / `PLEDGE_STAT_FIELDS` / `DIVIDEND_FIELDS`。百分比类字段（`netprofit_yoy`/`or_yoy`/`grossprofit_margin`/`debt_to_assets`/`netprofit_margin`/`dv_ttm`）以百分数数值返回，写盘加 `%` 后缀保留两位小数。
+**计算型字段口径**（不落盘，M2 纯函数计算）：
+
+| 需求字段 | 计算公式 | 依赖真实字段 |
+|---|---|---|
+| 股东权益比 | `total_hldr_eqy_exc_min_int / total_assets` | balancesheet_vip |
+| 限售股合计 | 首版不计算（float_share 已删除） | — |
+| 每股经营现金流/每股收益 | `ocfps / eps` | fina_indicator_vip |
+| 净利润占营业利润比 | `n_income_attr_p / operate_profit` | income_vip |
+| 主营利润率 | `operate_profit / revenue` | income_vip |
+| 投资收益占比 | `invest_income / total_profit` | income_vip |
+
+**不可用字段**（6 个，首版不采集）：
+
+| 需求字段 | 原因 |
+|---|---|
+| 调整后每股净资产 | Tushare 无此字段且无近似 |
+| 无限售股合计 | 近似字段 float_share 已删除 |
+| A股数量 | Tushare 无此字段 |
+| B股数量 | Tushare 无此字段 |
+| 国家持股数量 | 需 top10_holders 聚合，首版不采集 |
+| 国有法人持股 | 需 top10_holders 聚合，首版不采集 |
+
+**补充字段（3 个，服务一票否决 §8.2 / 三维评分 §8.3）**：`SUPPLEMENTARY_FIELDS` 记录额外采集的字段（`money_cap`/`free_cashflow`/`inv_turn`），来源 `balancesheet_vip`/`cashflow_vip`/`fina_indicator_vip`，已合并入 `OUTPUT_COLUMNS` 中（`SUPPLEMENTARY_COLUMNS` 为空）。
+
+各接口请求字段见 `STOCK_BASIC_FIELDS` / `INCOME_FIELDS` / `BALANCESHEET_FIELDS` / `CASHFLOW_FIELDS` / `FINA_INDICATOR_FIELDS`。百分比类字段（`netprofit_yoy`/`or_yoy`/`grossprofit_margin`/`debt_to_assets`/`netprofit_margin`）以百分数数值返回，写盘加 `%` 后缀保留两位小数。
+
+**报告期与最新数据校验**：`end_date`（财报所属期间）以 `income` 的报告期为唯一来源；`fetch_financials` 调用 4 个 vip 接口（income / balancesheet / cashflow / fina_indicator），其余接口按各自 `end_date` 选最新但不覆盖该字段。`period=None`（"最新"）缓存按 `cache_ttl_hours`（默认 24h）失效，避免新报告期已披露而缓存陈旧。最新报告期校验：`src/utils/period.py::expected_latest_period(today)` 按法定披露截止日（Q1→4-30、半年报→8-31、Q3→10-31、年报→次年4-30）推算预期值；`scripts/verify_latest.py` 独立重查 `income_vip`(max end_date) 与 CSV 交叉比对（不读缓存），`integrated_tests/test_latest_period.py` 为对应 network 测试。
+
+**CSV 列序**：`OUTPUT_COLUMNS`（44 列）按财务阅读习惯分组排列（基本信息→利润表→利润率增速→资产负债→偿债指标→每股指标→现金流量→营运效率），不再按接口来源顺序。
+
+**申万行业分类（五大类）**：CSV 中"所属分类"列不再使用 stock_basic 的 `industry` 字段，改为通过申万行业指数分类映射到五个大类。数据链：`ts_code → index_member_all(ts_code, is_new='Y') → l2_name → sw_l2_to_category() → 五大类`。纯映射见 `src/rating/industry.py`（约 130 个 SW 二级行业名→五大类，自动剥离罗马数字后缀如 `中药Ⅱ`→`中药`）。分类仅在采集范围内按需查询 API，结果增量缓存到 `data/cache/sw_industry.csv`。
+
+**CSV 数值格式化**：所有数值字段按 `data/test/YYMMDD-数据来源.csv` 中记录的单位匹配后缀（代码见 `src/reports/csv_writer.py::format_value`），具体规则：
+- `元` → 亿/万数量级 + 元（如 `1.13亿元`、`-1526.07万元`）
+- `%` → `.2f%`（含 PERCENT_FIELDS 五项 + roe）
+- `倍` → `.2f倍`（current_ratio/quick_ratio/assets_to_eqt）
+- `次` → `.2f次`（inv_turn）
+- `元/股` → `.2f元/股`（eps/bps/ocfps/capital_rese_ps/undist_profit_ps）
+- `股` → 亿/万数量级 + 股（total_share，如 `3.56亿股`）
+- `比率` → `.2f` 无后缀（ocf_to_shortdebt）
+单元格不做 CJK 宽度填充（Excel 打开后 Ctrl+A + 双击列边界即可自适应列宽）。
 
 ### 8.2 一票否决规则 `[RIGID]`
 
@@ -569,6 +635,7 @@ TUSHARE_TOKEN=               # Tushare Pro token（注册 tushare.pro 获取；v
 DATA_DIR=data                # 数据根目录
 CONCURRENCY=4                # 采集并发
 TUSHARE_RATE_LIMIT=500       # 每分钟调用上限（5000积分=500次/分；2000积分=200次/分）
+CACHE_TTL_HOURS=24          # "最新"缓存有效期（小时），过期重采以获取新报告期；0=永不过期
 HOTSPOT_CRON_09=0 9 * * *
 HOTSPOT_CRON_17=0 17 * * *
 PORTFOLIO_CRON_09=0 9 * * *
@@ -633,6 +700,7 @@ LLM_LOCAL_FALLBACK=false     # 是否启用本地模型兜底
 ### 12.3 验收清单（DoD）
 
 - [ ] BRD step1~step4 全流程可一键跑通并产出对应 csv。
+- [ ] 采集数据为最新报告期（`scripts/verify_latest.py` 交叉校验通过）。
 - [ ] 评分/评级纯函数单测覆盖全部阈值边界（8.5/7.0/5.5 等）。
 - [ ] 一票否决剔除公司记录可审计（`-否决.csv`）。
 - [ ] 热点/持仓定时任务按 09:00/17:00 触发并推送。
