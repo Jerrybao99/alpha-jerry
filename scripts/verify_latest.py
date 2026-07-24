@@ -33,7 +33,9 @@ def _max_field(records: list[dict], field: str) -> str | None:
 
 def cross_check_latest(pro: Any, ts_code: str) -> str | None:
     """独立重查 Tushare，返回 income 最新 end_date。"""
-    inc = pro.query("income_vip", ts_code=ts_code, fields="ts_code,end_date").to_dict("records")
+    inc = pro.query("income_vip", ts_code=ts_code, fields="ts_code,end_date").to_dict(
+        "records"
+    )
     return _max_field(inc, "end_date")
 
 
@@ -58,7 +60,9 @@ def read_csv_rows(csv_path: Path) -> list[dict[str, str | None]]:
     return out
 
 
-def verify_csv(pro: Any, csv_path: Path, today: _dt.date | None = None) -> list[dict[str, Any]]:
+def verify_csv(
+    pro: Any, csv_path: Path, today: _dt.date | None = None
+) -> list[dict[str, Any]]:
     """校验 CSV 每行：end_date==Tushare最新 且 ≥ 预期报告期。"""
     today = today or _dt.date.today()
     expected = expected_latest_period(today)
@@ -125,7 +129,9 @@ def main() -> None:
             f"{r['ts_code']:<14}{(r['csv_end_date'] or '-'):<14}{(r['tushare_end_date'] or '-'):<14}{flag}"
         )
         if not ok:
-            fresh_msg = "OK" if r["ok_fresh"] else f"{r['csv_end_date']} < {r['expected_min']}"
+            fresh_msg = (
+                "OK" if r["ok_fresh"] else f"{r['csv_end_date']} < {r['expected_min']}"
+            )
             print(f"    end {'==' if r['ok_end'] else '!='} | fresh {fresh_msg}")
     print(f"\n{'全部通过' if all_ok else '存在不一致，请检查'} ({len(results)} 股)")
     sys.exit(0 if all_ok else 1)

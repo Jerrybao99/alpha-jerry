@@ -28,7 +28,9 @@ def test_latest_period_cross_check(tmp_path: Path) -> None:
         pytest.skip("未配置 TUSHARE_TOKEN")
     fetcher = TushareFetcher(settings)
     out = tmp_path / "test"
-    feat_path, _, ok, fail = run_smoke(fetcher, settings, 2, out, date=_dt.date(2026, 7, 24), seed=1)
+    feat_path, _, ok, fail = run_smoke(
+        fetcher, settings, 2, out, date=_dt.date(2026, 7, 24), seed=1
+    )
     assert ok == 2 and fail == 0, "冒烟采集未全部成功"
 
     ts.set_token(token)
@@ -38,5 +40,9 @@ def test_latest_period_cross_check(tmp_path: Path) -> None:
 
     expected = expected_latest_period(_dt.date(2026, 7, 24))
     for r in results:
-        assert r["ok_end"], f"{r['ts_code']} end_date CSV={r['csv_end_date']} != Tushare={r['tushare_end_date']}"
-        assert r["ok_fresh"], f"{r['ts_code']} end_date {r['csv_end_date']} 早于预期最新报告期 {expected}"
+        assert r["ok_end"], (
+            f"{r['ts_code']} end_date CSV={r['csv_end_date']} != Tushare={r['tushare_end_date']}"
+        )
+        assert r["ok_fresh"], (
+            f"{r['ts_code']} end_date {r['csv_end_date']} 早于预期最新报告期 {expected}"
+        )

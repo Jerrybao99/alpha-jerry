@@ -65,13 +65,19 @@ class CollectionPipeline:
             if cache is not None
             else Cache(
                 self.settings.data_root / "cache",
-                ttl_seconds=self.settings.cache_ttl_hours * 3600 if self.settings.cache_ttl_hours > 0 else None,
+                ttl_seconds=self.settings.cache_ttl_hours * 3600
+                if self.settings.cache_ttl_hours > 0
+                else None,
             )
         )
         self._owns_executor = executor is None
-        self._executor = executor or ThreadPoolExecutor(max_workers=max(1, self.settings.concurrency))
+        self._executor = executor or ThreadPoolExecutor(
+            max_workers=max(1, self.settings.concurrency)
+        )
 
-    def run(self, period: str | None = None, codes: list[str] | None = None) -> CollectionResult:
+    def run(
+        self, period: str | None = None, codes: list[str] | None = None
+    ) -> CollectionResult:
         """执行采集。codes 非空时只采指定股票（冒烟测试用）。
 
         Returns:
@@ -88,14 +94,19 @@ class CollectionPipeline:
         name_map = {s.ts_code: s.name for s in stocks}
         info_map = {s.ts_code: s for s in stocks}
 
-        futures = {self._executor.submit(self._fetch_one, s.ts_code, period): s.ts_code for s in stocks}
+        futures = {
+            self._executor.submit(self._fetch_one, s.ts_code, period): s.ts_code
+            for s in stocks
+        }
         for fut in futures:
             ts_code = futures[fut]
             try:
                 features, hit = fut.result()
             except Exception as exc:  # noqa: BLE001  单股失败隔离，原因记入审计
                 logger.warning("采集失败 %s: %s", ts_code, exc)
-                result.failures.append(Failure(ts_code, name_map.get(ts_code, ""), str(exc)))
+                result.failures.append(
+                    Failure(ts_code, name_map.get(ts_code, ""), str(exc))
+                )
                 continue
             if hit:
                 result.cached_hits += 1
@@ -103,11 +114,15 @@ class CollectionPipeline:
                 self._enrich_with_stock_info(features, info_map.get(ts_code))
                 result.successes.append(features)
             else:
-                result.failures.append(Failure(ts_code, name_map.get(ts_code, ""), "无数据"))
+                result.failures.append(
+                    Failure(ts_code, name_map.get(ts_code, ""), "无数据")
+                )
         return result
 
     @staticmethod
-    def _enrich_with_stock_info(features: StockFeatures, info: StockInfo | None) -> None:
+    def _enrich_with_stock_info(
+        features: StockFeatures, info: StockInfo | None
+    ) -> None:
         """回填 stock_basic 字段（symbol/name/industry）——fetch_financials 只采财务接口。"""
         if info is None:
             return
@@ -118,7 +133,9 @@ class CollectionPipeline:
         if not features.industry:
             features.industry = info.industry
 
-    def _fetch_one(self, ts_code: str, period: str | None) -> tuple[StockFeatures | None, bool]:
+    def _fetch_one(
+        self, ts_code: str, period: str | None
+    ) -> tuple[StockFeatures | None, bool]:
         """采集单股：先查缓存，未命中再调接口并回写缓存。返回 (特征, 是否命中缓存)。"""
         cached = self.cache.get(ts_code, period)
         if cached is not None:
@@ -133,7 +150,9 @@ class CollectionPipeline:
         """把成功特征标准化为输出行（§8.1 字段顺序 + 百分比格式化）。"""
         return [to_output_row(f) for f in result.successes]
 
-    def write_failures(self, failures: list[Failure], date: _dt.date | None = None) -> Path:
+    def write_failures(
+        self, failures: list[Failure], date: _dt.date | None = None
+    ) -> Path:
         """失败清单落 ``data/fin/YYMMDD-失败.csv``（审计可追溯，FR-DATA-05）。"""
         date = date or _dt.date.today()
         out = self.settings.data_path("fin") / f"{date.strftime('%y%m%d')}-失败.csv"

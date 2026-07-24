@@ -34,8 +34,25 @@ def main() -> None:
     for a in REQUIREMENT_ALIGNMENT:
         idx += 1
         api, url, pts = _interface_info(a.endpoint)
-        field_str = "/".join(a.tushare_field) if isinstance(a.tushare_field, tuple) else (a.tushare_field or "—")
-        rows.append([str(idx), a.requirement, field_str, a.chinese_name, api, url, pts, a.match, "特征工程", a.note])
+        field_str = (
+            "/".join(a.tushare_field)
+            if isinstance(a.tushare_field, tuple)
+            else (a.tushare_field or "—")
+        )
+        rows.append(
+            [
+                str(idx),
+                a.requirement,
+                field_str,
+                a.chinese_name,
+                api,
+                url,
+                pts,
+                a.match,
+                "特征工程",
+                a.note,
+            ]
+        )
 
     # 补充字段
     for sf in SUPPLEMENTARY_FIELDS:

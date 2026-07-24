@@ -1,6 +1,7 @@
 """Tushare 数据源适配器。实现 BaseFetcher，含限流器（每分钟调用上限）与指数退避重试（1s/2s/4s）。
 财务四表等优先用 _vip 接口；token 从 Settings 读取注入 SDK，空则报错提示配置 .env。
 """
+
 from __future__ import annotations
 
 import csv
@@ -94,19 +95,25 @@ class TushareFetcher(BaseFetcher):
         self._max_retries = max(0, max_retries)
         self._sleep = sleep
         self._clock = clock
-        self._limiter = RateLimiter(self.settings.tushare_rate_limit, sleep=sleep, clock=clock)
+        self._limiter = RateLimiter(
+            self.settings.tushare_rate_limit, sleep=sleep, clock=clock
+        )
         # pro 由外部注入（测试）或由 token 初始化（生产）；token 检查仅在真初始化时生效。
         if pro is not None:
             self._pro = pro
         else:
             token = self.settings.tushare_token.strip()
             if not token:
-                raise TushareTokenError("未配置 TUSHARE_TOKEN，请在 .env 填入（注册见 https://tushare.pro ）。")
+                raise TushareTokenError(
+                    "未配置 TUSHARE_TOKEN，请在 .env 填入（注册见 https://tushare.pro ）。"
+                )
             ts.set_token(token)
             self._pro = ts.pro_api()
 
     # ===== 核心调用：限流 + 指数退避重试 =====
-    def _call(self, interface_key: str, fields: tuple[str, ...], **params: Any) -> list[dict]:
+    def _call(
+        self, interface_key: str, fields: tuple[str, ...], **params: Any
+    ) -> list[dict]:
         """调用某接口，返回记录列表。vip 接口自动取 vip_api_name。"""
         api_name = get_vip_api_name(interface_key)
         return self._call_raw(api_name, fields=",".join(fields), **params)
@@ -149,7 +156,9 @@ class TushareFetcher(BaseFetcher):
             for r in records
         ]
 
-    def fetch_financials(self, ts_code: str, period: str | None = None) -> StockFeatures:
+    def fetch_financials(
+        self, ts_code: str, period: str | None = None
+    ) -> StockFeatures:
         """按 §8.1 聚合单股财务数据（FR-DATA-03/04）。
 
         财务三表/指标走 vip 接口；daily_basic 按贸易日取最新；补充字段（审计/质押/分红）
@@ -161,7 +170,9 @@ class TushareFetcher(BaseFetcher):
             fin_params["period"] = period
 
         # income 设定报告期（end_date 来自利润表，是「财报所属期间」的唯一权威来源）。
-        rec = self._latest(self._call("income", INCOME_FIELDS, **fin_params), "end_date")
+        rec = self._latest(
+            self._call("income", INCOME_FIELDS, **fin_params), "end_date"
+        )
         data.update(self._clean_record(rec, INCOME_FIELDS))
         # report_period 锁定后，其余接口仍按各自 end_date 选最新记录，但不覆盖该字段
         # （pledge_stat/fina_audit 的 end_date 是统计截止日/审计对应年报，语义不同）。
@@ -191,7 +202,9 @@ class TushareFetcher(BaseFetcher):
         return records[0]
 
     @staticmethod
-    def _clean_record(rec: dict | None, fields: tuple[str, ...], *, exclude: set[str] | None = None) -> dict[str, Any]:
+    def _clean_record(
+        rec: dict | None, fields: tuple[str, ...], *, exclude: set[str] | None = None
+    ) -> dict[str, Any]:
         """提取字段并把 NaN/None 归一化为 None（StockFeatures 容忍缺失）。
 
         exclude 中的字段不写入返回字典（用于保护 income 确定的报告期 end_date 不被覆盖）。
@@ -220,7 +233,13 @@ class TushareFetcher(BaseFetcher):
         return str(v)
 
     # ===== 申万行业分类 =====
-    _SW_MEMBER_FIELDS: tuple[str, ...] = ("ts_code", "l1_name", "l2_name", "l3_name", "is_new")
+    _SW_MEMBER_FIELDS: tuple[str, ...] = (
+        "ts_code",
+        "l1_name",
+        "l2_name",
+        "l3_name",
+        "is_new",
+    )
 
     def _sw_cache_path(self) -> Path:
         return self.settings.data_root / "cache" / "sw_industry.csv"
@@ -240,7 +259,9 @@ class TushareFetcher(BaseFetcher):
     def _fetch_one_sw_category(self, ts_code: str) -> str:
         """查单股申万行业 → 五大类。不传 fields，获取全部默认字段（含 l1/l2/l3_name）。"""
         try:
-            records = self._call_no_fields("index_member_all", ts_code=ts_code, is_new="Y")
+            records = self._call_no_fields(
+                "index_member_all", ts_code=ts_code, is_new="Y"
+            )
         except TushareApiError:
             return "未分类"
         for r in records:

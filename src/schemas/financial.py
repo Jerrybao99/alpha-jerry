@@ -48,56 +48,169 @@ REQUIREMENT_ALIGNMENT: list[RequirementAlign] = [
     RequirementAlign("股票代码", STOCK_BASIC, "symbol", "股票代码", "exact"),
     RequirementAlign("股票名称", STOCK_BASIC, "name", "股票名称", "exact"),
     RequirementAlign("行业属性", STOCK_BASIC, "industry", "所属行业", "exact"),
-    RequirementAlign("财报所属期间", INCOME, "end_date", "报告期", "exact", "如 20171231"),
-    RequirementAlign("主营收入", INCOME, "revenue", "营业收入", "approximate", "营业收入近似主营收入"),
-    RequirementAlign("主营利润", INCOME, "operate_profit", "营业利润", "approximate", "以营业利润近似"),
+    RequirementAlign(
+        "财报所属期间", INCOME, "end_date", "报告期", "exact", "如 20171231"
+    ),
+    RequirementAlign(
+        "主营收入", INCOME, "revenue", "营业收入", "approximate", "营业收入近似主营收入"
+    ),
+    RequirementAlign(
+        "主营利润",
+        INCOME,
+        "operate_profit",
+        "营业利润",
+        "approximate",
+        "以营业利润近似",
+    ),
     RequirementAlign("营业利润", INCOME, "operate_profit", "营业利润", "exact"),
     RequirementAlign("投资收益", INCOME, "invest_income", "投资净收益", "exact"),
     RequirementAlign(
-        "营业外收支", INCOME, ("non_oper_income", "non_oper_exp"), "营业外收入/支出", "approximate", "拆为两列"
+        "营业外收支",
+        INCOME,
+        ("non_oper_income", "non_oper_exp"),
+        "营业外收入/支出",
+        "approximate",
+        "拆为两列",
     ),
     RequirementAlign("利润总额", INCOME, "total_profit", "利润总额", "exact"),
-    RequirementAlign("净利润", INCOME, "n_income_attr_p", "归属母公司股东净利润", "exact"),
-    RequirementAlign("未分配利润", BALANCESHEET, "undistr_porfit", "未分配利润", "exact", "Tushare 拼写为 porfit"),
+    RequirementAlign(
+        "净利润", INCOME, "n_income_attr_p", "归属母公司股东净利润", "exact"
+    ),
+    RequirementAlign(
+        "未分配利润",
+        BALANCESHEET,
+        "undistr_porfit",
+        "未分配利润",
+        "exact",
+        "Tushare 拼写为 porfit",
+    ),
     RequirementAlign("总资产", BALANCESHEET, "total_assets", "资产总计", "exact"),
-    RequirementAlign("流动资产", BALANCESHEET, "total_cur_assets", "流动资产合计", "exact"),
+    RequirementAlign(
+        "流动资产", BALANCESHEET, "total_cur_assets", "流动资产合计", "exact"
+    ),
     RequirementAlign("固定资产", BALANCESHEET, "fix_assets", "固定资产", "exact"),
     RequirementAlign("无形资产", BALANCESHEET, "intan_assets", "无形资产", "exact"),
     RequirementAlign("总负债", BALANCESHEET, "total_liab", "负债合计", "exact"),
-    RequirementAlign("流动负债", BALANCESHEET, "total_cur_liab", "流动负债合计", "exact"),
+    RequirementAlign(
+        "流动负债", BALANCESHEET, "total_cur_liab", "流动负债合计", "exact"
+    ),
     RequirementAlign("长期负债", BALANCESHEET, "total_ncl", "非流动负债合计", "exact"),
-    RequirementAlign("股东权益", BALANCESHEET, "total_hldr_eqy_exc_min_int", "股东权益合计(不含少数股东权益)", "exact"),
+    RequirementAlign(
+        "股东权益",
+        BALANCESHEET,
+        "total_hldr_eqy_exc_min_int",
+        "股东权益合计(不含少数股东权益)",
+        "exact",
+    ),
     RequirementAlign("资本公积金", BALANCESHEET, "cap_rese", "资本公积金", "exact"),
-    RequirementAlign("经营现金流量", CASHFLOW, "n_cashflow_act", "经营活动现金流量净额", "exact"),
-    RequirementAlign("投资现金流量", CASHFLOW, "n_cashflow_inv_act", "投资活动现金流量净额", "exact"),
-    RequirementAlign("筹资现金流量", CASHFLOW, "n_cash_flows_fnc_act", "筹资活动现金流量净额", "exact"),
-    RequirementAlign("现金增加额", CASHFLOW, "n_incr_cash_cash_equ", "现金及现金等价物净增加额", "exact"),
+    RequirementAlign(
+        "经营现金流量", CASHFLOW, "n_cashflow_act", "经营活动现金流量净额", "exact"
+    ),
+    RequirementAlign(
+        "投资现金流量", CASHFLOW, "n_cashflow_inv_act", "投资活动现金流量净额", "exact"
+    ),
+    RequirementAlign(
+        "筹资现金流量",
+        CASHFLOW,
+        "n_cash_flows_fnc_act",
+        "筹资活动现金流量净额",
+        "exact",
+    ),
+    RequirementAlign(
+        "现金增加额",
+        CASHFLOW,
+        "n_incr_cash_cash_equ",
+        "现金及现金等价物净增加额",
+        "exact",
+    ),
     RequirementAlign("每股收益", FINA_INDICATOR, "eps", "基本每股收益", "exact"),
     RequirementAlign("每股净资产", FINA_INDICATOR, "bps", "每股净资产", "exact"),
     RequirementAlign("净资产收益率", FINA_INDICATOR, "roe", "净资产收益率", "exact"),
-    RequirementAlign("每股经营现金", FINA_INDICATOR, "ocfps", "每股经营活动现金流量净额", "exact"),
-    RequirementAlign("每股公积金", FINA_INDICATOR, "capital_rese_ps", "每股资本公积", "exact"),
-    RequirementAlign("每股未分配利润", FINA_INDICATOR, "undist_profit_ps", "每股未分配利润", "exact"),
     RequirementAlign(
-        "股东权益比", COMPUTED, None, "股东权益比", "computed_in_scoring", "= total_hldr_eqy_exc_min_int / total_assets"
+        "每股经营现金", FINA_INDICATOR, "ocfps", "每股经营活动现金流量净额", "exact"
     ),
-    RequirementAlign("净利润同比增长率", FINA_INDICATOR, "netprofit_yoy", "归母净利润同比增长率(%)", "exact"),
-    RequirementAlign("主营收入同比增长率", FINA_INDICATOR, "or_yoy", "营业收入同比增长率(%)", "exact"),
-    RequirementAlign("销售毛利率", FINA_INDICATOR, "grossprofit_margin", "销售毛利率(%)", "exact"),
-    RequirementAlign("调整后每股净资产", UNAVAILABLE, None, "调整后每股净资产", "unavailable", "Tushare 无此字段"),
+    RequirementAlign(
+        "每股公积金", FINA_INDICATOR, "capital_rese_ps", "每股资本公积", "exact"
+    ),
+    RequirementAlign(
+        "每股未分配利润", FINA_INDICATOR, "undist_profit_ps", "每股未分配利润", "exact"
+    ),
+    RequirementAlign(
+        "股东权益比",
+        COMPUTED,
+        None,
+        "股东权益比",
+        "computed_in_scoring",
+        "= total_hldr_eqy_exc_min_int / total_assets",
+    ),
+    RequirementAlign(
+        "净利润同比增长率",
+        FINA_INDICATOR,
+        "netprofit_yoy",
+        "归母净利润同比增长率(%)",
+        "exact",
+    ),
+    RequirementAlign(
+        "主营收入同比增长率", FINA_INDICATOR, "or_yoy", "营业收入同比增长率(%)", "exact"
+    ),
+    RequirementAlign(
+        "销售毛利率", FINA_INDICATOR, "grossprofit_margin", "销售毛利率(%)", "exact"
+    ),
+    RequirementAlign(
+        "调整后每股净资产",
+        UNAVAILABLE,
+        None,
+        "调整后每股净资产",
+        "unavailable",
+        "Tushare 无此字段",
+    ),
     RequirementAlign("总股本", BALANCESHEET, "total_share", "期末总股本", "exact"),
-    RequirementAlign("无限售股合计", UNAVAILABLE, None, "流通股本", "unavailable", "首版已删除不采集"),
-    RequirementAlign("A股数量", UNAVAILABLE, None, "A股数量", "unavailable", "Tushare 无此字段"),
-    RequirementAlign("B股数量", UNAVAILABLE, None, "B股数量", "unavailable", "Tushare 无此字段"),
-    RequirementAlign("限售股合计", COMPUTED, None, "限售股合计", "computed_in_scoring", "= total_share - float_share"),
-    RequirementAlign("国家持股数量", UNAVAILABLE, None, "国家持股数量", "unavailable", "需 top10_holders 聚合"),
-    RequirementAlign("国有法人持股", UNAVAILABLE, None, "国有法人持股", "unavailable", "需 top10_holders 聚合"),
-    RequirementAlign("资产负债率", FINA_INDICATOR, "debt_to_assets", "资产负债率(%)", "exact"),
+    RequirementAlign(
+        "无限售股合计", UNAVAILABLE, None, "流通股本", "unavailable", "首版已删除不采集"
+    ),
+    RequirementAlign(
+        "A股数量", UNAVAILABLE, None, "A股数量", "unavailable", "Tushare 无此字段"
+    ),
+    RequirementAlign(
+        "B股数量", UNAVAILABLE, None, "B股数量", "unavailable", "Tushare 无此字段"
+    ),
+    RequirementAlign(
+        "限售股合计",
+        COMPUTED,
+        None,
+        "限售股合计",
+        "computed_in_scoring",
+        "= total_share - float_share",
+    ),
+    RequirementAlign(
+        "国家持股数量",
+        UNAVAILABLE,
+        None,
+        "国家持股数量",
+        "unavailable",
+        "需 top10_holders 聚合",
+    ),
+    RequirementAlign(
+        "国有法人持股",
+        UNAVAILABLE,
+        None,
+        "国有法人持股",
+        "unavailable",
+        "需 top10_holders 聚合",
+    ),
+    RequirementAlign(
+        "资产负债率", FINA_INDICATOR, "debt_to_assets", "资产负债率(%)", "exact"
+    ),
     RequirementAlign("流动比率", FINA_INDICATOR, "current_ratio", "流动比率", "exact"),
     RequirementAlign("速动比率", FINA_INDICATOR, "quick_ratio", "速动比率", "exact"),
     RequirementAlign("权益乘数", FINA_INDICATOR, "assets_to_eqt", "权益乘数", "exact"),
     RequirementAlign(
-        "每股经营现金流/每股收益", COMPUTED, None, "每股经营现金流/每股收益", "computed_in_scoring", "= ocfps / eps"
+        "每股经营现金流/每股收益",
+        COMPUTED,
+        None,
+        "每股经营现金流/每股收益",
+        "computed_in_scoring",
+        "= ocfps / eps",
     ),
     RequirementAlign(
         "净利润占营业利润比",
@@ -107,12 +220,32 @@ REQUIREMENT_ALIGNMENT: list[RequirementAlign] = [
         "computed_in_scoring",
         "= n_income_attr_p / operate_profit",
     ),
-    RequirementAlign("主营利润率", COMPUTED, None, "主营利润率", "computed_in_scoring", "= operate_profit / revenue"),
-    RequirementAlign("净利率", FINA_INDICATOR, "netprofit_margin", "销售净利率(%)", "exact"),
     RequirementAlign(
-        "投资收益占比", COMPUTED, None, "投资收益占比", "computed_in_scoring", "= invest_income / total_profit"
+        "主营利润率",
+        COMPUTED,
+        None,
+        "主营利润率",
+        "computed_in_scoring",
+        "= operate_profit / revenue",
     ),
-    RequirementAlign("现金流量比率", FINA_INDICATOR, "ocf_to_shortdebt", "经营现金流/流动负债", "exact"),
+    RequirementAlign(
+        "净利率", FINA_INDICATOR, "netprofit_margin", "销售净利率(%)", "exact"
+    ),
+    RequirementAlign(
+        "投资收益占比",
+        COMPUTED,
+        None,
+        "投资收益占比",
+        "computed_in_scoring",
+        "= invest_income / total_profit",
+    ),
+    RequirementAlign(
+        "现金流量比率",
+        FINA_INDICATOR,
+        "ocf_to_shortdebt",
+        "经营现金流/流动负债",
+        "exact",
+    ),
 ]
 
 
@@ -260,7 +393,13 @@ ALL_OUTPUT_COLUMNS: tuple[str, ...] = (*OUTPUT_COLUMNS, *SUPPLEMENTARY_COLUMNS)
 
 # Tushare 以百分数数值返回的字段（如 30.5 表示 30.5%）；写盘时按 dev-log 加 % 后缀。
 PERCENT_FIELDS: frozenset[str] = frozenset(
-    {"netprofit_yoy", "or_yoy", "grossprofit_margin", "debt_to_assets", "netprofit_margin"}
+    {
+        "netprofit_yoy",
+        "or_yoy",
+        "grossprofit_margin",
+        "debt_to_assets",
+        "netprofit_margin",
+    }
 )
 
 
@@ -335,7 +474,6 @@ class StockFeatures(BaseModel):
     netprofit_margin: float | None = None
     ocf_to_shortdebt: float | None = None
     inv_turn: float | None = None
-
 
     @classmethod
     def output_columns(cls) -> list[str]:

@@ -48,7 +48,9 @@ class _FakeFetcher:
 
     def fetch_stock_list(self) -> list[StockInfo]:
         codes = set(self.features) | self.raise_on | self.none_on
-        return [StockInfo(ts_code=c, symbol=c.split(".")[0], name=c) for c in sorted(codes)]
+        return [
+            StockInfo(ts_code=c, symbol=c.split(".")[0], name=c) for c in sorted(codes)
+        ]
 
     def fetch_financials(self, ts_code, period=None):
         self.calls.append(ts_code)
@@ -154,7 +156,10 @@ def test_pipeline_collects_successes(tmp_path: Path) -> None:
         "000001.SZ": _feat("000001.SZ", revenue=2.0e10),
     }
     pipe = CollectionPipeline(
-        fetcher, settings=_settings(tmp_path), cache=Cache(tmp_path / "c"), executor=_SeqExecutor()
+        fetcher,
+        settings=_settings(tmp_path),
+        cache=Cache(tmp_path / "c"),
+        executor=_SeqExecutor(),
     )
     result = pipe.run()
     assert result.total == 2
@@ -168,7 +173,9 @@ def test_pipeline_cache_hit_on_second_run(tmp_path: Path) -> None:
     fetcher = _FakeFetcher()
     fetcher.features = {"600000.SH": _feat("600000.SH", revenue=1.0e10)}
     cache = Cache(tmp_path / "c")
-    pipe = CollectionPipeline(fetcher, settings=_settings(tmp_path), cache=cache, executor=_SeqExecutor())
+    pipe = CollectionPipeline(
+        fetcher, settings=_settings(tmp_path), cache=cache, executor=_SeqExecutor()
+    )
     pipe.run()
     assert fetcher.calls == ["600000.SH"]
     # 第二次跑：命中缓存，不再调接口
@@ -186,7 +193,10 @@ def test_pipeline_failure_isolation(tmp_path: Path) -> None:
     }
     fetcher.raise_on = {"000001.SZ"}
     pipe = CollectionPipeline(
-        fetcher, settings=_settings(tmp_path), cache=Cache(tmp_path / "c"), executor=_SeqExecutor()
+        fetcher,
+        settings=_settings(tmp_path),
+        cache=Cache(tmp_path / "c"),
+        executor=_SeqExecutor(),
     )
     result = pipe.run()
     assert result.success_count == 1
@@ -200,7 +210,10 @@ def test_pipeline_none_features_recorded_as_failure(tmp_path: Path) -> None:
     fetcher.features = {"600000.SH": _feat("600000.SH")}
     fetcher.none_on = {"600000.SH"}
     pipe = CollectionPipeline(
-        fetcher, settings=_settings(tmp_path), cache=Cache(tmp_path / "c"), executor=_SeqExecutor()
+        fetcher,
+        settings=_settings(tmp_path),
+        cache=Cache(tmp_path / "c"),
+        executor=_SeqExecutor(),
     )
     result = pipe.run()
     assert result.success_count == 0
@@ -212,7 +225,10 @@ def test_pipeline_codes_filter(tmp_path: Path) -> None:
     fetcher = _FakeFetcher()
     fetcher.features = {c: _feat(c) for c in ("600000.SH", "000001.SZ", "000002.SZ")}
     pipe = CollectionPipeline(
-        fetcher, settings=_settings(tmp_path), cache=Cache(tmp_path / "c"), executor=_SeqExecutor()
+        fetcher,
+        settings=_settings(tmp_path),
+        cache=Cache(tmp_path / "c"),
+        executor=_SeqExecutor(),
     )
     result = pipe.run(codes=["600000.SH"])
     assert result.total == 1
@@ -223,7 +239,10 @@ def test_pipeline_to_rows(tmp_path: Path) -> None:
     fetcher = _FakeFetcher()
     fetcher.features = {"600000.SH": _feat("600000.SH", netprofit_yoy=20.0)}
     pipe = CollectionPipeline(
-        fetcher, settings=_settings(tmp_path), cache=Cache(tmp_path / "c"), executor=_SeqExecutor()
+        fetcher,
+        settings=_settings(tmp_path),
+        cache=Cache(tmp_path / "c"),
+        executor=_SeqExecutor(),
     )
     result = pipe.run()
     rows = pipe.to_rows(result)
@@ -237,7 +256,10 @@ def test_pipeline_write_failures(tmp_path: Path) -> None:
     fetcher.features = {"600000.SH": _feat("600000.SH")}
     fetcher.raise_on = {"000001.SZ"}
     pipe = CollectionPipeline(
-        fetcher, settings=_settings(tmp_path), cache=Cache(tmp_path / "c"), executor=_SeqExecutor()
+        fetcher,
+        settings=_settings(tmp_path),
+        cache=Cache(tmp_path / "c"),
+        executor=_SeqExecutor(),
     )
     result = pipe.run()
     out = pipe.write_failures(result.failures, date=_dt.date(2026, 7, 23))
@@ -257,7 +279,9 @@ def test_pipeline_real_threadpool_smoke(tmp_path: Path) -> None:
     fetcher = _FakeFetcher()
     fetcher.features = {f"60000{i}.SH": _feat(f"60000{i}.SH") for i in range(4)}
     exe = ThreadPoolExecutor(max_workers=2)
-    pipe = CollectionPipeline(fetcher, settings=_settings(tmp_path), cache=Cache(tmp_path / "c"), executor=exe)
+    pipe = CollectionPipeline(
+        fetcher, settings=_settings(tmp_path), cache=Cache(tmp_path / "c"), executor=exe
+    )
     try:
         result = pipe.run()
     finally:

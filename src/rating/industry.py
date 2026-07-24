@@ -10,7 +10,13 @@ CAT_TECH = "科技/制造"
 CAT_UTILITY = "公用事业/基建"
 CAT_UNKNOWN = "未分类"
 
-FIVE_CATEGORIES: tuple[str, ...] = (CAT_CYCLICAL, CAT_CONSUMER, CAT_FINANCIAL, CAT_TECH, CAT_UTILITY)
+FIVE_CATEGORIES: tuple[str, ...] = (
+    CAT_CYCLICAL,
+    CAT_CONSUMER,
+    CAT_FINANCIAL,
+    CAT_TECH,
+    CAT_UTILITY,
+)
 
 # 申万二级行业名称 → 五大类
 _SW_L2_TO_CATEGORY: dict[str, str] = {

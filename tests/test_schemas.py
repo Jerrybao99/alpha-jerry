@@ -59,7 +59,9 @@ def test_requirement_coverage_summary() -> None:
     cov = requirement_coverage()
     assert sum(cov.values()) == 53
     assert cov["exact"] >= 35
-    assert cov["unavailable"] == 6  # 调整后每股净资产/A股/B股/国家持股/国有法人持股 + float_share已删除
+    assert (
+        cov["unavailable"] == 6
+    )  # 调整后每股净资产/A股/B股/国家持股/国有法人持股 + float_share已删除
     assert cov["computed_in_scoring"] == 6
 
 
@@ -131,7 +133,15 @@ def test_supplementary_fields_valid() -> None:
 
 
 # ===== 接口注册表测试 =====
-VIP_ENDPOINTS = {"income", "balancesheet", "cashflow", "fina_indicator", "forecast", "express", "fina_mainbz"}
+VIP_ENDPOINTS = {
+    "income",
+    "balancesheet",
+    "cashflow",
+    "fina_indicator",
+    "forecast",
+    "express",
+    "fina_mainbz",
+}
 
 
 def test_tushare_interfaces_registry() -> None:
@@ -202,7 +212,9 @@ def test_stock_features_tolerates_missing() -> None:
 
 
 def test_stock_info_real_fields() -> None:
-    info = StockInfo(ts_code="600000.SH", symbol="600000", name="浦发银行", industry="银行")
+    info = StockInfo(
+        ts_code="600000.SH", symbol="600000", name="浦发银行", industry="银行"
+    )
     assert info.ts_code == "600000.SH"
     assert info.symbol == "600000"
 

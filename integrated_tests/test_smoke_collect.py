@@ -21,7 +21,10 @@ class _FakeFetcher(BaseFetcher):
         self.features = features
 
     def fetch_stock_list(self) -> list[StockInfo]:
-        return [StockInfo(ts_code=c, symbol=c.split(".")[0], name=c) for c in sorted(self.features)]
+        return [
+            StockInfo(ts_code=c, symbol=c.split(".")[0], name=c)
+            for c in sorted(self.features)
+        ]
 
     def fetch_financials(self, ts_code, period=None):
         return StockFeatures(**self.features[ts_code].model_dump())
@@ -46,10 +49,17 @@ def _feat(ts_code: str) -> StockFeatures:
 
 
 def test_smoke_writes_two_csvs(tmp_path: Path) -> None:
-    fetcher = _FakeFetcher({c: _feat(c) for c in ("600000.SH", "000001.SZ", "000002.SZ")})
+    fetcher = _FakeFetcher(
+        {c: _feat(c) for c in ("600000.SH", "000001.SZ", "000002.SZ")}
+    )
     out = tmp_path / "test"
     feat_path, src_path, ok, fail = run_smoke(
-        fetcher, _settings(tmp_path), sample=2, out_dir=out, date=_dt.date(2026, 7, 23), seed=1
+        fetcher,
+        _settings(tmp_path),
+        sample=2,
+        out_dir=out,
+        date=_dt.date(2026, 7, 23),
+        seed=1,
     )
     assert ok == 2 and fail == 0
     assert feat_path.name == "260723.csv"
@@ -58,9 +68,13 @@ def test_smoke_writes_two_csvs(tmp_path: Path) -> None:
 
 
 def test_features_csv_chinese_header_and_format(tmp_path: Path) -> None:
-    fetcher = _FakeFetcher({"600000.SH": _feat("600000.SH"), "000001.SZ": _feat("000001.SZ")})
+    fetcher = _FakeFetcher(
+        {"600000.SH": _feat("600000.SH"), "000001.SZ": _feat("000001.SZ")}
+    )
     out = tmp_path / "test"
-    feat_path, _, _, _ = run_smoke(fetcher, _settings(tmp_path), 2, out, date=_dt.date(2026, 7, 23))
+    feat_path, _, _, _ = run_smoke(
+        fetcher, _settings(tmp_path), 2, out, date=_dt.date(2026, 7, 23)
+    )
     text = feat_path.read_text(encoding="utf-8-sig")
     header = text.strip().split("\n")[0].lstrip("\ufeff")
     # 中文列头存在（首列：股票名称；次列：股票代码；symbol 列已删除）
@@ -99,9 +113,13 @@ def test_features_csv_chinese_header_and_format(tmp_path: Path) -> None:
 
 def test_features_csv_cells_clean_no_trailing_spaces(tmp_path: Path) -> None:
     """单元格无首尾空格，Excel 双击列边界即可自适应列宽。"""
-    fetcher = _FakeFetcher({"600000.SH": _feat("600000.SH"), "000001.SZ": _feat("000001.SZ")})
+    fetcher = _FakeFetcher(
+        {"600000.SH": _feat("600000.SH"), "000001.SZ": _feat("000001.SZ")}
+    )
     out = tmp_path / "test"
-    feat_path, _, _, _ = run_smoke(fetcher, _settings(tmp_path), 2, out, date=_dt.date(2026, 7, 23))
+    feat_path, _, _, _ = run_smoke(
+        fetcher, _settings(tmp_path), 2, out, date=_dt.date(2026, 7, 23)
+    )
     text = feat_path.read_text(encoding="utf-8-sig")
     if text.endswith("\n"):
         text = text[:-1]
@@ -113,7 +131,9 @@ def test_features_csv_cells_clean_no_trailing_spaces(tmp_path: Path) -> None:
 def test_data_source_csv_content(tmp_path: Path) -> None:
     fetcher = _FakeFetcher({"600000.SH": _feat("600000.SH")})
     out = tmp_path / "test"
-    _, src_path, _, _ = run_smoke(fetcher, _settings(tmp_path), 1, out, date=_dt.date(2026, 7, 23))
+    _, src_path, _, _ = run_smoke(
+        fetcher, _settings(tmp_path), 1, out, date=_dt.date(2026, 7, 23)
+    )
     text = src_path.read_text(encoding="utf-8-sig")
     assert text.startswith("接口,字段,字段中文,单位,单位来源,文档URL")
     # 含 vip 接口名与文档 URL
@@ -134,7 +154,9 @@ def test_smoke_sample_clamped(tmp_path: Path) -> None:
     """采样数超过清单时自动收敛到清单大小。"""
     fetcher = _FakeFetcher({"600000.SH": _feat("600000.SH")})
     out = tmp_path / "test"
-    _, _, ok, _ = run_smoke(fetcher, _settings(tmp_path), 5, out, date=_dt.date(2026, 7, 23))
+    _, _, ok, _ = run_smoke(
+        fetcher, _settings(tmp_path), 5, out, date=_dt.date(2026, 7, 23)
+    )
     assert ok == 1
 
 

@@ -18,7 +18,9 @@ class Cache:
     重新采集以获取新报告期；显式 period 的历史数据不可变，不受 TTL 约束。
     """
 
-    def __init__(self, cache_dir: Path, enabled: bool = True, ttl_seconds: float | None = None) -> None:
+    def __init__(
+        self, cache_dir: Path, enabled: bool = True, ttl_seconds: float | None = None
+    ) -> None:
         self.cache_dir = cache_dir
         self.enabled = enabled
         self.ttl_seconds = ttl_seconds
@@ -55,4 +57,6 @@ class Cache:
         """写入缓存（disabled 时跳过）。"""
         if not self.enabled:
             return
-        self._path(ts_code, period).write_text(features.model_dump_json(), encoding="utf-8")
+        self._path(ts_code, period).write_text(
+            features.model_dump_json(), encoding="utf-8"
+        )

@@ -29,4 +29,4 @@
 - [网页](https://wikimind.top/)
 - [界面](https://quanttide.github.io/qtcloud-devops/)
 - https://tushare.pro/document/2
-- https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web#/cpbd
+- https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web&code=SZ000679&color=b#/cwfx

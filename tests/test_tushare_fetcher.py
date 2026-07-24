@@ -94,7 +94,9 @@ def test_token_whitespace_only_raises() -> None:
 # ===== RateLimiter =====
 def test_rate_limiter_allows_under_limit() -> None:
     slept: list[float] = []
-    rl = RateLimiter(limit=3, window=60.0, sleep=slept.append, clock=_clock_seq([0, 1, 2]))
+    rl = RateLimiter(
+        limit=3, window=60.0, sleep=slept.append, clock=_clock_seq([0, 1, 2])
+    )
     for _ in range(3):
         rl.acquire()
     assert slept == []
@@ -104,7 +106,9 @@ def test_rate_limiter_blocks_when_exceed() -> None:
     """窗口内第 limit+1 次必须 sleep 到最早一次滑出窗口。"""
     slept: list[float] = []
     # acquire1 取 now=10；acquire2 取 now=20；acquire3 取 now=30 后阻塞，sleep 后再取 now=30
-    rl = RateLimiter(limit=2, window=60.0, sleep=slept.append, clock=_clock_seq([10, 20, 30, 30]))
+    rl = RateLimiter(
+        limit=2, window=60.0, sleep=slept.append, clock=_clock_seq([10, 20, 30, 30])
+    )
     rl.acquire()  # t=10
     rl.acquire()  # t=20
     rl.acquire()  # t=30，超额 → sleep(60-(30-10))=40
@@ -120,10 +124,15 @@ def _clock_seq(values: list[float]):
 def test_call_retry_then_success() -> None:
     """前 2 次抛异常，第 3 次成功：sleep 序列为 1s、2s。"""
     pro = _FakePro()
-    pro.set_response("stock_basic", [{"ts_code": "600000.SH", "symbol": "600000", "name": "浦发银行"}])
+    pro.set_response(
+        "stock_basic",
+        [{"ts_code": "600000.SH", "symbol": "600000", "name": "浦发银行"}],
+    )
     pro.fail_then_ok("stock_basic", 2)
     delays: list[float] = []
-    fetcher = TushareFetcher(settings=_settings(), pro=pro, sleep=delays.append, max_retries=3)
+    fetcher = TushareFetcher(
+        settings=_settings(), pro=pro, sleep=delays.append, max_retries=3
+    )
     rows = fetcher._call("stock_basic", ("ts_code", "symbol", "name"), list_status="L")
     assert rows[0]["ts_code"] == "600000.SH"
     assert delays == [BACKOFF_BASE_SECONDS * 1, BACKOFF_BASE_SECONDS * 2]
@@ -134,7 +143,9 @@ def test_call_retry_exhausted_raises() -> None:
     pro = _FakePro()
     pro.fail_then_ok("stock_basic", 99)  # 永远失败
     delays: list[float] = []
-    fetcher = TushareFetcher(settings=_settings(), pro=pro, sleep=delays.append, max_retries=3)
+    fetcher = TushareFetcher(
+        settings=_settings(), pro=pro, sleep=delays.append, max_retries=3
+    )
     with pytest.raises(TushareApiError, match="stock_basic"):
         fetcher._call("stock_basic", ("ts_code",), list_status="L")
     assert delays == [1.0, 2.0, 4.0]
@@ -199,20 +210,50 @@ def test_fetch_financials_picks_latest_and_aggregates() -> None:
     pro.set_response(
         "income_vip",
         [
-            {"ts_code": "600000.SH", "end_date": "20240930", "revenue": 1.0e10, "n_income_attr_p": 1.0e9},
-            {"ts_code": "600000.SH", "end_date": "20241231", "revenue": 1.5e10, "n_income_attr_p": 2.0e9},
+            {
+                "ts_code": "600000.SH",
+                "end_date": "20240930",
+                "revenue": 1.0e10,
+                "n_income_attr_p": 1.0e9,
+            },
+            {
+                "ts_code": "600000.SH",
+                "end_date": "20241231",
+                "revenue": 1.5e10,
+                "n_income_attr_p": 2.0e9,
+            },
         ],
     )
     pro.set_response(
         "balancesheet_vip",
-        [{"ts_code": "600000.SH", "end_date": "20241231", "total_assets": 1.0e12, "money_cap": 5.0e11}],
+        [
+            {
+                "ts_code": "600000.SH",
+                "end_date": "20241231",
+                "total_assets": 1.0e12,
+                "money_cap": 5.0e11,
+            }
+        ],
     )
-    pro.set_response("cashflow_vip", [{"ts_code": "600000.SH", "end_date": "20241231", "n_cashflow_act": 3.0e9}])
     pro.set_response(
-        "fina_indicator_vip", [{"ts_code": "600000.SH", "end_date": "20241231", "roe": 12.5, "netprofit_yoy": 20.0}]
+        "cashflow_vip",
+        [{"ts_code": "600000.SH", "end_date": "20241231", "n_cashflow_act": 3.0e9}],
+    )
+    pro.set_response(
+        "fina_indicator_vip",
+        [
+            {
+                "ts_code": "600000.SH",
+                "end_date": "20241231",
+                "roe": 12.5,
+                "netprofit_yoy": 20.0,
+            }
+        ],
     )
 
-    feat = TushareFetcher(settings=_settings(), pro=pro, sleep=_no_sleep).fetch_financials("600000.SH")
+    feat = TushareFetcher(
+        settings=_settings(), pro=pro, sleep=_no_sleep
+    ).fetch_financials("600000.SH")
     dumped = feat.model_dump()
     expected = {
         "ts_code": "600000.SH",
@@ -232,18 +273,35 @@ def test_fetch_financials_picks_latest_and_aggregates() -> None:
 def test_fetch_financials_end_date_locked_to_income() -> None:
     """end_date 锁定为 income 报告期，不被其他接口的 end_date 覆盖。"""
     pro = _FakePro()
-    pro.set_response("income_vip", [{"ts_code": "600000.SH", "end_date": "20260331", "revenue": 1.0e10}])
-    pro.set_response("balancesheet_vip", [{"ts_code": "600000.SH", "end_date": "20260331", "total_assets": 1.0e12}])
-    pro.set_response("cashflow_vip", [{"ts_code": "600000.SH", "end_date": "20260331", "n_cashflow_act": 3.0e9}])
-    pro.set_response("fina_indicator_vip", [{"ts_code": "600000.SH", "end_date": "20260331", "roe": 12.5}])
-    feat = TushareFetcher(settings=_settings(), pro=pro, sleep=_no_sleep).fetch_financials("600000.SH")
+    pro.set_response(
+        "income_vip",
+        [{"ts_code": "600000.SH", "end_date": "20260331", "revenue": 1.0e10}],
+    )
+    pro.set_response(
+        "balancesheet_vip",
+        [{"ts_code": "600000.SH", "end_date": "20260331", "total_assets": 1.0e12}],
+    )
+    pro.set_response(
+        "cashflow_vip",
+        [{"ts_code": "600000.SH", "end_date": "20260331", "n_cashflow_act": 3.0e9}],
+    )
+    pro.set_response(
+        "fina_indicator_vip",
+        [{"ts_code": "600000.SH", "end_date": "20260331", "roe": 12.5}],
+    )
+    feat = TushareFetcher(
+        settings=_settings(), pro=pro, sleep=_no_sleep
+    ).fetch_financials("600000.SH")
     assert feat.end_date == "20260331"
 
 
 def test_fetch_financials_nan_normalized_to_none() -> None:
     """Tushare 可能返回 NaN，应归一化为 None 以匹配 StockFeatures(float|None)。"""
     pro = _FakePro()
-    pro.set_response("income_vip", [{"ts_code": "600000.SH", "end_date": "20241231", "revenue": math.nan}])
+    pro.set_response(
+        "income_vip",
+        [{"ts_code": "600000.SH", "end_date": "20241231", "revenue": math.nan}],
+    )
     _set_all_empty(pro, except_={"income_vip"})
     fetcher = TushareFetcher(settings=_settings(), pro=pro, sleep=_no_sleep)
     assert fetcher.fetch_financials("600000.SH").revenue is None
@@ -253,7 +311,9 @@ def test_fetch_financials_passes_period_param() -> None:
     """period 非空时透传给财务三表/指标（vip 接口按报告期取）。"""
     pro = _FakePro()
     _set_all_empty(pro)
-    TushareFetcher(settings=_settings(), pro=pro, sleep=_no_sleep).fetch_financials("600000.SH", period="20241231")
+    TushareFetcher(settings=_settings(), pro=pro, sleep=_no_sleep).fetch_financials(
+        "600000.SH", period="20241231"
+    )
     by_api = {c["api_name"]: c for c in pro.calls}
     assert by_api["income_vip"]["period"] == "20241231"
     assert by_api["fina_indicator_vip"]["period"] == "20241231"
@@ -263,7 +323,9 @@ def test_fetch_financials_calls_all_4_interfaces() -> None:
     """fetch_financials 必须覆盖 4 个 vip 财务接口。"""
     pro = _FakePro()
     _set_all_empty(pro)
-    TushareFetcher(settings=_settings(), pro=pro, sleep=_no_sleep).fetch_financials("600000.SH")
+    TushareFetcher(settings=_settings(), pro=pro, sleep=_no_sleep).fetch_financials(
+        "600000.SH"
+    )
     names = [c["api_name"] for c in pro.calls]
     assert set(names) == set(_ALL_APIS)
     assert len(names) == 4

@@ -26,7 +26,9 @@ class BaseFetcher(ABC):
         """
 
     @abstractmethod
-    def fetch_financials(self, ts_code: str, period: str | None = None) -> StockFeatures:
+    def fetch_financials(
+        self, ts_code: str, period: str | None = None
+    ) -> StockFeatures:
         """按 §8.1 需求采集单股财务数据（FR-DATA-03）。
 
         实现需聚合 income / balancesheet / cashflow / fina_indicator / daily_basic
